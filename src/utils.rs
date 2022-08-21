@@ -1,3 +1,7 @@
+use image::Rgba;
+
+use crate::DEFAULT_COLOR;
+
 #[derive(Clone)]
 pub struct Vec2 {
     pub x: u32,
@@ -18,3 +22,13 @@ impl std::fmt::Display for Vec2 {
     }
 }
 
+pub(super) fn rgba_from_colorname(name: &str) -> Rgba<u8>{
+    match name {
+        "red" => Rgba([255,0,0,255]),
+        "green" => Rgba([0,255,0,255]),
+        "blue" => Rgba([0,0,255,255]),
+        "purple" => DEFAULT_COLOR,
+        "black" |
+        &_ => Rgba([0,0,0,255])
+    }
+}

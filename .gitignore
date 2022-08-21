@@ -1,4 +1,5 @@
 /target
 
-# output images
-tests/misc
+# test images
+tests/src
+tests/out

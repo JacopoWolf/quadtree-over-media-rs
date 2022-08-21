@@ -1,15 +1,19 @@
-use super::strct::Vec2;
-use image::{DynamicImage, GenericImageView, GenericImage, Rgba};
+use image::{DynamicImage, GenericImageView, GenericImage, Rgba, RgbaImage};
 use std::collections::VecDeque;
+use crate::DEFAULT_COLOR;
+
+use super::utils::Vec2;
 
 const MIN_DEPTH: i32 = 3;
 const MIN_SIZE: Vec2 = Vec2 { x: 4, y: 4 };
 const RGB_TRESHOLD: [u8; 3] = [8, 8, 8];
-const BORDER_COLOR: Rgba<u8> = Rgba([255,20,200,255]);
 
-
-pub fn draw_quads_on_image(img: &DynamicImage) -> DynamicImage {
-    let mut imgcopy = img.clone();
+pub fn draw_quads_on_image(img: &DynamicImage, args: &super::Args) -> DynamicImage {
+    let mut imgcopy = if args.as_new {
+        DynamicImage::ImageRgba8(RgbaImage::new(img.width(), img.height()))
+    } else {
+        img.clone()
+    };
     let mut curr_depth = 1;
     let max_depth = ((img.width() * img.height()) as f64).log2() as i32 / 2;
     println!("Max iterations: {max_depth}");
@@ -65,7 +69,7 @@ pub fn draw_quads_on_image(img: &DynamicImage) -> DynamicImage {
             }
 
             for i in 0..4 {
-                draw_square(&mut imgcopy, &pos_tmp[i], &curr_size);
+                draw_square(&args.color.unwrap_or(DEFAULT_COLOR), &mut imgcopy, &pos_tmp[i], &curr_size);
                 queue_out.push_back(pos_tmp[i].clone());
             }
         }
@@ -105,11 +109,11 @@ fn average_colors(img: &DynamicImage, pos: &Vec2, size: &Vec2) -> [u8; 3] {
     [(tot[0] / c) as u8, (tot[1] / c) as u8, (tot[2] / c) as u8]
 }
 
-fn draw_square(img: &mut DynamicImage, pos: &Vec2, size: &Vec2) -> () {
+fn draw_square(color: &Rgba<u8>, img: &mut DynamicImage, pos: &Vec2, size: &Vec2) -> () {
     for x in 0..size.x {
-        img.put_pixel(pos.x+x, pos.y, BORDER_COLOR);
+        img.put_pixel(pos.x+x, pos.y, *color);
     }
     for y in 0..size.y {
-        img.put_pixel(pos.x, pos.y+y, BORDER_COLOR);
+        img.put_pixel(pos.x, pos.y+y, *color);
     }
 }
