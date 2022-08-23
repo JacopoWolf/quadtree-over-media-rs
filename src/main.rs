@@ -4,8 +4,9 @@ mod utils;
 use clap::Parser;
 use image::Rgba;
 
-const DEFAULT_MIN_DEPTH: u32 = 4;
+const DEFAULT_MIN_DEPTH : u32 = 4;
 const DEFAULT_COLOR: Rgba<u8> = Rgba([255, 20, 147, 255]); //DeepPink
+const DEFAULT_TRESHOLD: Rgba<u8> = Rgba([8, 8, 8, 255]);
 
 /// Calculate and draw quads over images, detecting "active" areas
 /// and do nice stuff with that
@@ -25,8 +26,17 @@ pub struct Args {
     min_depth: u32,
 
     /// The color of the lines defining the quads.
+    /// Supports all CSS colors
+    /// [default: "deeppink"]
     #[clap(long, short, value_parser = parse_rgba)]
     color: Option<Rgba<u8>>,
+
+    /// The maximum allowed color difference between quadrants, 
+    /// ie: MAX(avgcolor)-MIN(avgcolor)
+    /// Used to decide if to split or not. Passed as a CSS color value
+    /// [default: "rgba(10,10,10,255)"]
+    #[clap(long, short, value_parser = parse_rgba)]
+    treshold: Option<Rgba<u8>>,
 
     /// fill the quads with the relative average color value
     #[clap(long, value_parser)]
@@ -39,6 +49,9 @@ pub struct Args {
 
 fn main() {
     let args = Args::parse();
+    if args.treshold.is_some() && !args.treshold.unwrap().0.iter().all(|v| v > &0) {
+        panic!("invalid treshold! minimum trashold must be >0 for each component!")
+    }
     draw_and_save(&args)
 }
 
@@ -81,10 +94,11 @@ mod tests {
         draw_and_save(&Args {
             input: "tests/src/shapes.png".to_owned(),
             output: "tests/out/shapes.png".to_owned(),
-            color: Option::Some(DEFAULT_COLOR),
-            min_depth: DEFAULT_MIN_DEPTH,
-            quads_only: true,
-            fill: false
+            color: Some(DEFAULT_COLOR),
+            treshold: Some(Rgba([1,1,1,1])),
+            min_depth: 0,
+            quads_only: false,
+            fill: false,
         })
     }
     #[test]

@@ -1,11 +1,10 @@
 use image::{DynamicImage, GenericImageView, GenericImage, Rgba, RgbaImage};
 use std::collections::VecDeque;
-use crate::DEFAULT_COLOR;
+use crate::{DEFAULT_COLOR, DEFAULT_TRESHOLD};
 
 use super::utils::Vec2;
 
 const MIN_SIZE: Vec2 = Vec2 { x: 4, y: 4 };
-const RGB_TRESHOLD: [u8; 3] = [8, 8, 8];
 
 pub fn draw_quads_on_image(img: &DynamicImage, args: &super::Args) -> DynamicImage {
     let mut imgcopy = if args.quads_only {
@@ -62,7 +61,7 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::Args) -> DynamicIma
                     average_colors(&img, &pos_tmp[2], &curr_size),
                     average_colors(&img, &pos_tmp[3], &curr_size),
                 ];
-                if is_under_trashold(&averages) {
+                if is_under_treshold(&averages, &args.treshold.unwrap_or(DEFAULT_TRESHOLD).0) {
                     continue;
                 }
             }
@@ -82,19 +81,19 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::Args) -> DynamicIma
 }
 
 
-fn is_under_trashold(pixel: &[[u8; 3]; 4]) -> bool {
-    //TODO check this and implement a better trashold checking algorithm
-    for i in 0..3 {
-        let max = pixel.iter().max_by_key(|x| x[i]).unwrap();
-        let min = pixel.iter().min_by_key(|x| x[i]).unwrap();
-        if (max[i] - min[i]) < RGB_TRESHOLD[i] {
+fn is_under_treshold(pixel: &[[u8; 4]; 4], treshold: &[u8;4]) -> bool {
+    //TODO check this and implement a better treshold checking algorithm
+    for i in 0..3 { //TODO consider Alpha channel
+        let max = pixel.iter().max_by_key(|x| x[i]).unwrap()[i];
+        let min = pixel.iter().min_by_key(|x| x[i]).unwrap()[i];
+        if (max - min) < treshold[i] {
             return true;
         }
     }
     false
 }
 
-fn average_colors(img: &DynamicImage, pos: &Vec2, size: &Vec2) -> [u8; 3] {
+fn average_colors(img: &DynamicImage, pos: &Vec2, size: &Vec2) -> [u8; 4] {
     let section = img.view(pos.x, pos.y, size.x, size.y);
     let mut c = 0u64;
     let mut tot = [0u64, 0u64, 0u64];
@@ -105,7 +104,7 @@ fn average_colors(img: &DynamicImage, pos: &Vec2, size: &Vec2) -> [u8; 3] {
         c += 1;
     }
 
-    [(tot[0] / c) as u8, (tot[1] / c) as u8, (tot[2] / c) as u8]
+    [(tot[0] / c) as u8, (tot[1] / c) as u8, (tot[2] / c) as u8, 0]
 }
 
 fn draw_square(color: &Rgba<u8>, img: &mut DynamicImage, pos: &Vec2, size: &Vec2) -> () {
