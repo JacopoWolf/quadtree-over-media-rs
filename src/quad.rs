@@ -4,18 +4,17 @@ use crate::DEFAULT_COLOR;
 
 use super::utils::Vec2;
 
-const MIN_DEPTH: i32 = 3;
 const MIN_SIZE: Vec2 = Vec2 { x: 4, y: 4 };
 const RGB_TRESHOLD: [u8; 3] = [8, 8, 8];
 
 pub fn draw_quads_on_image(img: &DynamicImage, args: &super::Args) -> DynamicImage {
-    let mut imgcopy = if args.as_new {
+    let mut imgcopy = if args.quads_only {
         DynamicImage::ImageRgba8(RgbaImage::new(img.width(), img.height()))
     } else {
         img.clone()
     };
-    let mut curr_depth = 1;
-    let max_depth = ((img.width() * img.height()) as f64).log2() as i32 / 2;
+    let mut curr_depth: u32 = 1;
+    let max_depth = ((img.width() * img.height()) as f64).log2() as u32 / 2;
     println!("Max iterations: {max_depth}");
 
     let mut queue_in: VecDeque<Vec2> = VecDeque::from([Vec2::new()]);
@@ -56,7 +55,7 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::Args) -> DynamicIma
                 },
             ];
 
-            if curr_depth > MIN_DEPTH {
+            if curr_depth > args.min_depth {
                 let averages = [
                     average_colors(&img, &pos_tmp[0], &curr_size),
                     average_colors(&img, &pos_tmp[1], &curr_size),
