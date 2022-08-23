@@ -6,7 +6,7 @@ use image::Rgba;
 
 const DEFAULT_MIN_DEPTH : u32 = 4;
 const DEFAULT_COLOR: Rgba<u8> = Rgba([255, 20, 147, 255]); //DeepPink
-const DEFAULT_TRESHOLD: Rgba<u8> = Rgba([8, 8, 8, 255]);
+const DEFAULT_TRESHOLD: Rgba<u8> = Rgba([8, 8, 8, 8]);
 
 /// Calculate and draw quads over images, detecting "active" areas
 /// and do nice stuff with that
@@ -28,14 +28,14 @@ pub struct Args {
     /// The color of the lines defining the quads.
     /// Supports all CSS colors
     /// [default: "deeppink"]
-    #[clap(long, short, value_parser = parse_rgba)]
+    #[clap(long, short, value_parser = parse_color)]
     color: Option<Rgba<u8>>,
 
     /// The maximum allowed color difference between quadrants, 
     /// ie: MAX(avgcolor)-MIN(avgcolor)
     /// Used to decide if to split or not. Passed as a CSS color value
     /// [default: "rgba(10,10,10,255)"]
-    #[clap(long, short, value_parser = parse_rgba)]
+    #[clap(long, short, value_parser = parse_color)]
     treshold: Option<Rgba<u8>>,
 
     /// fill the quads with the relative average color value
@@ -49,9 +49,6 @@ pub struct Args {
 
 fn main() {
     let args = Args::parse();
-    if args.treshold.is_some() && !args.treshold.unwrap().0.iter().all(|v| v > &0) {
-        panic!("invalid treshold! minimum trashold must be >0 for each component!")
-    }
     draw_and_save(&args)
 }
 
@@ -77,7 +74,7 @@ pub fn draw_and_save(args: &Args) {
         .expect("error while saving image");
 }
 
-fn parse_rgba(s: &str) -> Result<Rgba<u8>, String> {
+fn parse_color(s: &str) -> Result<Rgba<u8>, String> {
     match csscolorparser::parse(s) {
         Ok(c) => Ok(Rgba { 0: c.to_rgba8() }),
         Err(e) => Err(e.to_string()),
@@ -94,32 +91,32 @@ mod tests {
         draw_and_save(&Args {
             input: "tests/src/shapes.png".to_owned(),
             output: "tests/out/shapes.png".to_owned(),
-            color: Some(DEFAULT_COLOR),
-            treshold: Some(Rgba([1,1,1,1])),
+            color: parse_color("magenta").ok(),
+            treshold: parse_color("#000").ok(),
             min_depth: 0,
-            quads_only: false,
+            quads_only: true,
             fill: false,
         })
     }
     #[test]
     fn parses_rgb() {
         assert_eq!(
-            parse_rgba("rgb(250,251,252)").unwrap(),
+            parse_color("rgb(250,251,252)").unwrap(),
             Rgba([250, 251, 252, 255])
         )
     }
     #[test]
     fn parses_rgb_hex() {
-        assert_eq!(parse_rgba("#a1b2c3").unwrap(), Rgba([161, 178, 195, 255]))
+        assert_eq!(parse_color("#a1b2c3").unwrap(), Rgba([161, 178, 195, 255]))
     }
 
     #[test]
     fn parses_rgba_hex() {
-        assert_eq!(parse_rgba("#ff00007f").unwrap(), Rgba([255,0,0,127]) )
+        assert_eq!(parse_color("#ff00007f").unwrap(), Rgba([255,0,0,127]) )
     }
 
     #[test]
     fn parses_colorname() {
-        assert_eq!(parse_rgba("red").unwrap(), Rgba([255, 0, 0, 255]))
+        assert_eq!(parse_color("red").unwrap(), Rgba([255, 0, 0, 255]))
     }
 }

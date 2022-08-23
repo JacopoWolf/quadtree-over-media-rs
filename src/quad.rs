@@ -83,10 +83,11 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::Args) -> DynamicIma
 
 fn is_under_treshold(pixel: &[[u8; 4]; 4], treshold: &[u8;4]) -> bool {
     //TODO check this and implement a better treshold checking algorithm
-    for i in 0..3 { //TODO consider Alpha channel
+    //BUG for some reason if 0..4 it's used to consider Alpha channel... everything breaks?!?
+    for i in 0..3 { //rgba channels
         let max = pixel.iter().max_by_key(|x| x[i]).unwrap()[i];
         let min = pixel.iter().min_by_key(|x| x[i]).unwrap()[i];
-        if (max - min) < treshold[i] {
+        if (max - min) <= treshold[i] {
             return true;
         }
     }
@@ -96,15 +97,16 @@ fn is_under_treshold(pixel: &[[u8; 4]; 4], treshold: &[u8;4]) -> bool {
 fn average_colors(img: &DynamicImage, pos: &Vec2, size: &Vec2) -> [u8; 4] {
     let section = img.view(pos.x, pos.y, size.x, size.y);
     let mut c = 0u64;
-    let mut tot = [0u64, 0u64, 0u64];
+    let mut tot: [u64;4] = [0, 0, 0, 0];
     for p in section.pixels() {
         tot[0] += p.2 .0[0] as u64; //R
         tot[1] += p.2 .0[1] as u64; //G
         tot[2] += p.2 .0[2] as u64; //B
+        tot[3] += p.2 .0[3] as u64; //A
         c += 1;
     }
 
-    [(tot[0] / c) as u8, (tot[1] / c) as u8, (tot[2] / c) as u8, 0]
+    [(tot[0] / c) as u8, (tot[1] / c) as u8, (tot[2] / c) as u8, (tot[3] / c) as u8]
 }
 
 fn draw_square(color: &Rgba<u8>, img: &mut DynamicImage, pos: &Vec2, size: &Vec2) -> () {
