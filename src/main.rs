@@ -2,9 +2,9 @@ mod quad;
 mod utils;
 
 use clap::Parser;
-use image::Rgba;
+use image::{DynamicImage, Rgba};
 
-const DEFAULT_MIN_DEPTH : u32 = 4;
+const DEFAULT_MIN_DEPTH: u32 = 4;
 const DEFAULT_COLOR: Rgba<u8> = Rgba([255, 20, 147, 255]); //DeepPink
 const DEFAULT_TRESHOLD: Rgba<u8> = Rgba([8, 8, 8, 8]);
 
@@ -12,7 +12,7 @@ const DEFAULT_TRESHOLD: Rgba<u8> = Rgba([8, 8, 8, 8]);
 /// and do nice stuff with that
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
-pub struct Args {
+pub struct QuadArgs {
     /// Location of input media. Can be any supported image
     #[clap(short, value_parser)]
     input: String,
@@ -31,7 +31,7 @@ pub struct Args {
     #[clap(long, short, value_parser = parse_color)]
     color: Option<Rgba<u8>>,
 
-    /// The maximum allowed color difference between quadrants, 
+    /// The maximum allowed color difference between quadrants,
     /// ie: MAX(avgcolor)-MIN(avgcolor)
     /// Used to decide if to split or not. Passed as a CSS color value
     /// [default: "rgba(10,10,10,255)"]
@@ -48,13 +48,15 @@ pub struct Args {
 }
 
 fn main() {
-    let args = Args::parse();
-    draw_and_save(&args)
+    let args = QuadArgs::parse();
+
+    let img = quad::draw_quads_on_image(&load_image(&args.input), &args);
+    save(&img, &args);
 }
 
-pub fn draw_and_save(args: &Args) {
-    println!("loading {}", args.input);
-    let img = match image::io::Reader::open(&args.input)
+fn load_image(source: &String) -> DynamicImage {
+    println!("loading {}", source);
+    match image::io::Reader::open(&source)
         .expect("error while opening image")
         .with_guessed_format()
         .unwrap()
@@ -65,13 +67,12 @@ pub fn draw_and_save(args: &Args) {
             img
         }
         Err(_) => panic!("Problem decoding image:"),
-    };
-    let img_out = quad::draw_quads_on_image(&img, &args);
+    }
+}
 
+pub fn save(img: &DynamicImage, args: &QuadArgs) {
     println!("saving image to {}", args.output);
-    img_out
-        .save(&args.output)
-        .expect("error while saving image");
+    img.save(&args.output).expect("error while saving image");
 }
 
 fn parse_color(s: &str) -> Result<Rgba<u8>, String> {
@@ -85,10 +86,10 @@ fn parse_color(s: &str) -> Result<Rgba<u8>, String> {
 mod tests {
     use super::*;
 
-    #[test]
+    /*#[test]
     #[ignore]
     fn it_works() {
-        draw_and_save(&Args {
+        save(&QuadArgs {
             input: "tests/src/shapes.png".to_owned(),
             output: "tests/out/shapes.png".to_owned(),
             color: parse_color("magenta").ok(),
@@ -97,26 +98,16 @@ mod tests {
             quads_only: true,
             fill: false,
         })
-    }
+    }*/
+
     #[test]
-    fn parses_rgb() {
+    fn parses_rgba() {
         assert_eq!(
             parse_color("rgb(250,251,252)").unwrap(),
             Rgba([250, 251, 252, 255])
-        )
-    }
-    #[test]
-    fn parses_rgb_hex() {
-        assert_eq!(parse_color("#a1b2c3").unwrap(), Rgba([161, 178, 195, 255]))
-    }
-
-    #[test]
-    fn parses_rgba_hex() {
-        assert_eq!(parse_color("#ff00007f").unwrap(), Rgba([255,0,0,127]) )
-    }
-
-    #[test]
-    fn parses_colorname() {
-        assert_eq!(parse_color("red").unwrap(), Rgba([255, 0, 0, 255]))
+        );
+        assert_eq!(parse_color("#a1b2c3").unwrap(), Rgba([161, 178, 195, 255]));
+        assert_eq!(parse_color("#ff00007f").unwrap(), Rgba([255, 0, 0, 127]));
+        assert_eq!(parse_color("red").unwrap(), Rgba([255, 0, 0, 255]));
     }
 }
