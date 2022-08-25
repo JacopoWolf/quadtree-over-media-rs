@@ -1,8 +1,8 @@
 use image::{DynamicImage, GenericImage, GenericImageView, Rgba, RgbaImage};
-use std::collections::VecDeque;
 use rayon::prelude::*;
+use std::collections::VecDeque;
 
-use crate::utils::Vec2;
+use crate::utils::{Quad, Vec2};
 
 pub(super) const DEFAULT_MIN_DEPTH: u32 = 4;
 pub(super) const DEFAULT_COLOR: image::Rgba<u8> = image::Rgba([255, 20, 147, 255]); //DeepPink
@@ -13,7 +13,7 @@ pub(super) const MIN_SIZE: Vec2 = Vec2 { x: 3, y: 3 };
 
 /// Draws quads based on the specified image and with the given args
 pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> DynamicImage {
-    let mut imgcopy = if args.quads_only {
+    let mut imgcopy = if args.no_drawover || args.fill {
         DynamicImage::ImageRgba8(RgbaImage::new(img.width(), img.height()))
     } else {
         img.clone()
@@ -22,8 +22,11 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> Dynami
     let max_depth = ((img.width() * img.height()) as f64).log2() as u32 / 2;
     println!("Max iterations: {max_depth}");
 
-    let mut queue_in: VecDeque<Vec2> = VecDeque::from([Vec2::new()]);
-    let mut queue_out: VecDeque<Vec2>;
+    let mut queue_in: VecDeque<Quad> = VecDeque::from([Quad {
+        pos: Vec2::new(),
+        col: None,
+    }]);
+    let mut queue_out: VecDeque<Quad>;
 
     while curr_depth < max_depth && queue_in.len() > 0 {
         // halves size at each iteration
@@ -38,34 +41,49 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> Dynami
         }
         println!("Iteration: {}, size {}", curr_depth, curr_size);
 
-        queue_out = VecDeque::from_par_iter( 
-            queue_in.par_iter()
-            .map(|node| -> Option<[Vec2;4]> {
-                let pos_tmp = generate_subquads_coordinates(node, &curr_size);
-                if curr_depth > args.min_depth {
-                    let averages = [
-                        average_colors(&img, &pos_tmp[0], &curr_size),
-                        average_colors(&img, &pos_tmp[1], &curr_size),
-                        average_colors(&img, &pos_tmp[2], &curr_size),
-                        average_colors(&img, &pos_tmp[3], &curr_size),
-                    ];
-                    if are_le_treshold(&averages, &args.treshold.unwrap_or(DEFAULT_TRESHOLD)) {
-                        return None
+        queue_out = VecDeque::from_par_iter(
+            queue_in
+                .par_iter()
+                .map(|node| -> Option<[Quad; 4]> {
+                    let mut subs = generate_subquads(&node.pos, &curr_size);
+                    if curr_depth > args.min_depth || args.fill {
+                        let averages = [
+                            average_colors(&img, &subs[0].pos, &curr_size),
+                            average_colors(&img, &subs[1].pos, &curr_size),
+                            average_colors(&img, &subs[2].pos, &curr_size),
+                            average_colors(&img, &subs[3].pos, &curr_size),
+                        ];
+                        if are_le_treshold(&averages, &args.treshold.unwrap_or(DEFAULT_TRESHOLD)) {
+                            return None;
+                        }
+                        // assign colors
+                        if args.fill {
+                            subs[0].col = Some(image::Rgba(averages[0]));
+                            subs[1].col = Some(image::Rgba(averages[1]));
+                            subs[2].col = Some(image::Rgba(averages[2]));
+                            subs[3].col = Some(image::Rgba(averages[3]));
+                        }
                     }
-                }
-                Some(pos_tmp)
-            })
-            .flatten() // removes None options
-            .flatten() // flats [Vec2] to Vec2 {SelectMany}
+                    Some(subs)
+                })
+                .flatten() // flats Option, removes None
+                .flatten(), // flats [[Quad;4]] to [Quad] {SelectMany}
         );
-        
-        for q in queue_out.iter() {
-            draw_square(
-                &args.color.unwrap_or(DEFAULT_COLOR),
-                &mut imgcopy,
-                &q,
-                &curr_size,
-            );
+
+        // the actual drawing
+        unsafe {
+            //TODO add filter to not draw if the color is too bright or too dark
+            //  for example don't draw anything if it's black
+            
+            //TODO if args.fill
+            for q in queue_out.iter() {
+                draw_square_outlines(
+                    &args.color.unwrap_or(q.col.unwrap_or(DEFAULT_COLOR)),
+                    &mut imgcopy,
+                    &q.pos,
+                    &curr_size,
+                );
+            }
         }
 
         curr_depth += 1;
@@ -74,24 +92,21 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> Dynami
     imgcopy
 }
 
-fn generate_subquads_coordinates(pos: &Vec2, size: &Vec2) -> [Vec2;4] {
+fn generate_subquads(pos: &Vec2, size: &Vec2) -> [Quad; 4] {
     [
-        Vec2 {
-            x: pos.x,
-            y: pos.y,
-        },
-        Vec2 {
+        Quad::from(Vec2 { x: pos.x, y: pos.y }),
+        Quad::from(Vec2 {
             x: pos.x + size.x,
             y: pos.y,
-        },
-        Vec2 {
+        }),
+        Quad::from(Vec2 {
             x: pos.x,
             y: pos.y + size.y,
-        },
-        Vec2 {
+        }),
+        Quad::from(Vec2 {
             x: pos.x + size.x,
             y: pos.y + size.y,
-        },
+        }),
     ]
 }
 
@@ -124,12 +139,12 @@ fn average_colors(img: &DynamicImage, pos: &Vec2, size: &Vec2) -> [u8; 4] {
     ]
 }
 
-fn draw_square(color: &Rgba<u8>, img: &mut DynamicImage, pos: &Vec2, size: &Vec2) -> () {
+unsafe fn draw_square_outlines(color: &Rgba<u8>, img: &mut DynamicImage, pos: &Vec2, size: &Vec2) -> () {
     for x in 0..size.x {
-        img.put_pixel(pos.x + x, pos.y, *color);
+        img.unsafe_put_pixel(pos.x + x, pos.y, *color);
     }
     for y in 0..size.y {
-        img.put_pixel(pos.x, pos.y + y, *color);
+        img.unsafe_put_pixel(pos.x, pos.y + y, *color);
     }
 }
 

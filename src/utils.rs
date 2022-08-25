@@ -1,8 +1,15 @@
+use image::Rgba;
 
 #[derive(Clone)]
 pub struct Vec2 {
     pub x: u32,
     pub y: u32,
+}
+
+#[derive(Clone)]
+pub struct Quad{
+    pub pos: Vec2,
+    pub col: Option<Rgba<u8>>
 }
 
 impl Vec2 {
@@ -11,6 +18,11 @@ impl Vec2 {
     }
     pub fn smaller(&self, other: &Vec2) -> bool {
         self.x < other.x || self.y < other.y
+    }
+}
+impl From<Vec2> for Quad {
+    fn from(v: Vec2) -> Self {
+        Self { pos: v, col: None }
     }
 }
 impl std::fmt::Display for Vec2 {
