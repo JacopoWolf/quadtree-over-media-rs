@@ -1,12 +1,9 @@
-mod quad;
+pub mod quad;
 mod utils;
 
 use clap::Parser;
 use image::{DynamicImage, Rgba};
 
-const DEFAULT_MIN_DEPTH: u32 = 4;
-const DEFAULT_COLOR: Rgba<u8> = Rgba([255, 20, 147, 255]); //DeepPink
-const DEFAULT_TRESHOLD: Rgba<u8> = Rgba([8, 8, 8, 8]);
 
 /// Calculate and draw quads over images, detecting "active" areas
 /// and do nice stuff with that
@@ -15,36 +12,36 @@ const DEFAULT_TRESHOLD: Rgba<u8> = Rgba([8, 8, 8, 8]);
 pub struct QuadArgs {
     /// Location of input media. Can be any supported image
     #[clap(short, value_parser)]
-    input: String,
+    pub input: String,
 
     /// Location of output media
     #[clap(short, value_parser)]
-    output: String,
+    pub output: String,
 
     /// Minimun number of iterations
-    #[clap(long, value_parser, default_value_t = DEFAULT_MIN_DEPTH)]
-    min_depth: u32,
+    #[clap(long, value_parser, default_value_t =  quad::DEFAULT_MIN_DEPTH)]
+    pub min_depth: u32,
 
     /// The color of the lines defining the quads.
     /// Supports all CSS colors
     /// [default: "deeppink"]
     #[clap(long, short, value_parser = parse_color)]
-    color: Option<Rgba<u8>>,
+    pub color: Option<Rgba<u8>>,
 
     /// The maximum allowed color difference between quadrants,
     /// ie: MAX(avgcolor)-MIN(avgcolor)
     /// Used to decide if to split or not. Passed as a CSS color value
     /// [default: "rgba(10,10,10,255)"]
     #[clap(long, short, value_parser = parse_color)]
-    treshold: Option<Rgba<u8>>,
+    pub treshold: Option<Rgba<u8>>,
 
     /// fill the quads with the relative average color value
     #[clap(long, value_parser)]
-    fill: bool,
+    pub fill: bool,
 
     /// create the OUTPUT without drawing over a copy of INPUT media
     #[clap(long, value_parser)]
-    quads_only: bool,
+    pub quads_only: bool,
 }
 
 fn main() {
@@ -54,7 +51,7 @@ fn main() {
     save(&img, &args);
 }
 
-fn load_image(source: &String) -> DynamicImage {
+pub(crate) fn load_image(source: &String) -> DynamicImage {
     println!("loading {}", source);
     match image::io::Reader::open(&source)
         .expect("error while opening image")
@@ -86,10 +83,10 @@ fn parse_color(s: &str) -> Result<Rgba<u8>, String> {
 mod tests {
     use super::*;
 
-    /*#[test]
+    #[test]
     #[ignore]
     fn it_works() {
-        save(&QuadArgs {
+        let args = &QuadArgs {
             input: "tests/src/shapes.png".to_owned(),
             output: "tests/out/shapes.png".to_owned(),
             color: parse_color("magenta").ok(),
@@ -97,8 +94,10 @@ mod tests {
             min_depth: 0,
             quads_only: true,
             fill: false,
-        })
-    }*/
+        };
+        let img = crate::quad::draw_quads_on_image(&load_image(&args.input), &args);
+        save(&img, &args);
+    }
 
     #[test]
     fn parses_rgba() {

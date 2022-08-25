@@ -1,10 +1,13 @@
-use crate::{DEFAULT_COLOR, DEFAULT_TRESHOLD};
 use image::{DynamicImage, GenericImage, GenericImageView, Rgba, RgbaImage};
 use std::collections::VecDeque;
+use rayon::prelude::*;
 
 use crate::utils::Vec2;
 
-const MIN_SIZE: Vec2 = Vec2 { x: 3, y: 3 };
+pub(super) const DEFAULT_MIN_DEPTH: u32 = 4;
+pub(super) const DEFAULT_COLOR: image::Rgba<u8> = image::Rgba([255, 20, 147, 255]); //DeepPink
+pub(super) const DEFAULT_TRESHOLD: image::Rgba<u8> = image::Rgba([8, 8, 8, 8]);
+pub(super) const MIN_SIZE: Vec2 = Vec2 { x: 3, y: 3 };
 
 //TODO allow 3x3 and 4x4 quads
 
@@ -20,7 +23,7 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> Dynami
     println!("Max iterations: {max_depth}");
 
     let mut queue_in: VecDeque<Vec2> = VecDeque::from([Vec2::new()]);
-    let mut queue_out: VecDeque<Vec2> = VecDeque::with_capacity(4);
+    let mut queue_out: VecDeque<Vec2>;
 
     while curr_depth < max_depth && queue_in.len() > 0 {
         // halves size at each iteration
@@ -35,58 +38,61 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> Dynami
         }
         println!("Iteration: {}, size {}", curr_depth, curr_size);
 
-        while !queue_in.is_empty() {
-            //TODO this could be HEAVILY parallelized
-            let curr_node = queue_in.pop_front().unwrap();
-
-            let pos_tmp = [
-                Vec2 {
-                    x: curr_node.x,
-                    y: curr_node.y,
-                },
-                Vec2 {
-                    x: curr_node.x + curr_size.x,
-                    y: curr_node.y,
-                },
-                Vec2 {
-                    x: curr_node.x,
-                    y: curr_node.y + curr_size.y,
-                },
-                Vec2 {
-                    x: curr_node.x + curr_size.x,
-                    y: curr_node.y + curr_size.y,
-                },
-            ];
-
-            if curr_depth > args.min_depth {
-                let averages = [
-                    average_colors(&img, &pos_tmp[0], &curr_size),
-                    average_colors(&img, &pos_tmp[1], &curr_size),
-                    average_colors(&img, &pos_tmp[2], &curr_size),
-                    average_colors(&img, &pos_tmp[3], &curr_size),
-                ];
-                if are_le_treshold(&averages, &args.treshold.unwrap_or(DEFAULT_TRESHOLD)) {
-                    continue;
+        queue_out = VecDeque::from_par_iter( 
+            queue_in.par_iter()
+            .map(|node| -> Option<[Vec2;4]> {
+                let pos_tmp = generate_subquads_coordinates(node, &curr_size);
+                if curr_depth > args.min_depth {
+                    let averages = [
+                        average_colors(&img, &pos_tmp[0], &curr_size),
+                        average_colors(&img, &pos_tmp[1], &curr_size),
+                        average_colors(&img, &pos_tmp[2], &curr_size),
+                        average_colors(&img, &pos_tmp[3], &curr_size),
+                    ];
+                    if are_le_treshold(&averages, &args.treshold.unwrap_or(DEFAULT_TRESHOLD)) {
+                        return None
+                    }
                 }
-            }
-
-            for i in 0..4 {
-                draw_square(
-                    &args.color.unwrap_or(DEFAULT_COLOR),
-                    &mut imgcopy,
-                    &pos_tmp[i],
-                    &curr_size,
-                );
-                queue_out.push_back(pos_tmp[i].clone());
-            }
+                Some(pos_tmp)
+            })
+            .flatten() // removes None options
+            .flatten() // flats [Vec2] to Vec2 {SelectMany}
+        );
+        
+        for q in queue_out.iter() {
+            draw_square(
+                &args.color.unwrap_or(DEFAULT_COLOR),
+                &mut imgcopy,
+                &q,
+                &curr_size,
+            );
         }
 
         curr_depth += 1;
         queue_in = queue_out;
-        queue_out = VecDeque::with_capacity(4);
     }
-
     imgcopy
+}
+
+fn generate_subquads_coordinates(pos: &Vec2, size: &Vec2) -> [Vec2;4] {
+    [
+        Vec2 {
+            x: pos.x,
+            y: pos.y,
+        },
+        Vec2 {
+            x: pos.x + size.x,
+            y: pos.y,
+        },
+        Vec2 {
+            x: pos.x,
+            y: pos.y + size.y,
+        },
+        Vec2 {
+            x: pos.x + size.x,
+            y: pos.y + size.y,
+        },
+    ]
 }
 
 /// if all the differences between each max and min RGBA  LESS than the treshold

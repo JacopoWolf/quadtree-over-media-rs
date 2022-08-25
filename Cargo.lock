@@ -555,12 +555,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "quadtree-over-media-rs"
-version = "0.2.0"
+name = "quadtree-over-media"
+version = "0.3.0"
 dependencies = [
  "clap",
  "csscolorparser",
  "image",
+ "rayon",
 ]
 
 [[package]]
