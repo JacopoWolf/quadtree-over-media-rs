@@ -7,10 +7,10 @@ use crate::utils::{Quad, Vec2};
 pub(super) const DEFAULT_MIN_DEPTH: u32 = 4;
 pub(super) const DEFAULT_COLOR: image::Rgba<u8> = image::Rgba([255, 20, 147, 255]); //DeepPink
 pub(super) const DEFAULT_TRESHOLD: image::Rgba<u8> = image::Rgba([8, 8, 8, 8]);
+//TODO add min_size parameter
 pub(super) const MIN_SIZE: Vec2 = Vec2 { x: 3, y: 3 };
 
 //TODO allow 3x3 and 4x4 quads
-
 /// Draws quads based on the specified image and with the given args
 pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> DynamicImage {
     let mut imgcopy = if args.no_drawover || args.fill {
@@ -22,10 +22,7 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> Dynami
     let max_depth = ((img.width() * img.height()) as f64).log2() as u32 / 2;
     println!("Max iterations: {max_depth}");
 
-    let mut queue_in: VecDeque<Quad> = VecDeque::from([Quad {
-        pos: Vec2::new(),
-        col: None,
-    }]);
+    let mut queue_in: VecDeque<Quad> = VecDeque::from([Quad::from(Vec2::new())]);
     let mut queue_out: VecDeque<Quad>;
 
     while curr_depth < max_depth && queue_in.len() > 0 {
@@ -74,7 +71,7 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> Dynami
         unsafe {
             //TODO add filter to not draw if the color is too bright or too dark
             //  for example don't draw anything if it's black
-            
+
             //TODO if args.fill
             for q in queue_out.iter() {
                 draw_square_outlines(
@@ -110,9 +107,9 @@ fn generate_subquads(pos: &Vec2, size: &Vec2) -> [Quad; 4] {
     ]
 }
 
-/// if all the differences between each max and min RGBA  LESS than the treshold
+/// if all the differences between each max and min RGBA are LESS than the treshold
 fn are_le_treshold(sub_averages: &[[u8; 4]; 4], treshold: &Rgba<u8>) -> bool {
-    (0..=3) // index R, G, B, A
+    (0..4) // index R, G, B, A
         .all(|i| {
             let max = sub_averages.iter().map(|&a| a[i]).max().unwrap_or(255);
             let min = sub_averages.iter().map(|&a| a[i]).min().unwrap_or(0);
@@ -139,7 +136,12 @@ fn average_colors(img: &DynamicImage, pos: &Vec2, size: &Vec2) -> [u8; 4] {
     ]
 }
 
-unsafe fn draw_square_outlines(color: &Rgba<u8>, img: &mut DynamicImage, pos: &Vec2, size: &Vec2) -> () {
+unsafe fn draw_square_outlines(
+    color: &Rgba<u8>,
+    img: &mut DynamicImage,
+    pos: &Vec2,
+    size: &Vec2,
+) -> () {
     for x in 0..size.x {
         img.unsafe_put_pixel(pos.x + x, pos.y, *color);
     }
