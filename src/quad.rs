@@ -1,16 +1,13 @@
 use image::{DynamicImage, GenericImage, GenericImageView, Rgba, RgbaImage};
 use rayon::prelude::*;
-use std::collections::VecDeque;
 
 use crate::utils::{Quad, Vec2};
 
 pub(super) const DEFAULT_MIN_DEPTH: u32 = 4;
 pub(super) const DEFAULT_COLOR: image::Rgba<u8> = image::Rgba([255, 20, 147, 255]); //DeepPink
 pub(super) const DEFAULT_TRESHOLD: image::Rgba<u8> = image::Rgba([8, 8, 8, 8]);
-//TODO add min_size parameter
-pub(super) const MIN_SIZE: Vec2 = Vec2 { x: 3, y: 3 };
+pub(super) const DEFAULT_MIN_SIZE: Vec2 = Vec2 { x: 3, y: 3 };
 
-//TODO allow 3x3 and 4x4 quads
 /// Draws quads based on the specified image and with the given args
 pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> DynamicImage {
     let mut imgcopy = if args.no_drawover || args.fill {
@@ -22,23 +19,22 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> Dynami
     let max_depth = ((img.width() * img.height()) as f64).log2() as u32 / 2;
     println!("Max iterations: {max_depth}");
 
-    let mut queue_in: VecDeque<Quad> = VecDeque::from([Quad::from(Vec2::new())]);
-    let mut queue_out: VecDeque<Quad>;
+    let mut queue_in: Vec<Quad> = Vec::from([Quad::from(Vec2::new())]);
+    let mut queue_out: Vec<Quad>;
 
-    while curr_depth < max_depth && queue_in.len() > 0 {
+    while curr_depth < max_depth && !queue_in.is_empty() {
         // halves size at each iteration
         let curr_size = Vec2 {
             x: img.width() >> curr_depth,
             y: img.height() >> curr_depth,
         };
-
-        if curr_size.smaller(&MIN_SIZE) {
+        if curr_size.smaller(&args.min_quad_size) {
             println!("reached minimum possible quad size!");
             break;
         }
         println!("Iteration: {}, size {}", curr_depth, curr_size);
 
-        queue_out = VecDeque::from_par_iter(
+        queue_out = Vec::from_par_iter(
             queue_in
                 .par_iter()
                 .map(|node| -> Option<[Quad; 4]> {
@@ -69,11 +65,11 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> Dynami
 
         // the actual drawing
         unsafe {
+            for q in queue_out.iter() {
             //TODO add filter to not draw if the color is too bright or too dark
             //  for example don't draw anything if it's black
 
             //TODO if args.fill
-            for q in queue_out.iter() {
                 draw_square_outlines(
                     &args.color.unwrap_or(q.col.unwrap_or(DEFAULT_COLOR)),
                     &mut imgcopy,

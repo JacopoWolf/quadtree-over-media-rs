@@ -1,6 +1,6 @@
 use image::Rgba;
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Vec2 {
     pub x: u32,
     pub y: u32,
@@ -27,6 +27,6 @@ impl From<Vec2> for Quad {
 }
 impl std::fmt::Display for Vec2 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{};{}]", self.x, self.y)
+        write!(f, "[{},{}]", self.x, self.y)
     }
 }
