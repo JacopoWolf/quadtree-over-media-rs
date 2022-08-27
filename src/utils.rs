@@ -1,32 +1,41 @@
+use std::{hash::Hash, cmp::Ordering};
+
 use image::Rgba;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Vec2 {
     pub x: u32,
     pub y: u32,
 }
 
 #[derive(Clone)]
-pub struct Quad{
-    pub pos: Vec2,
-    pub col: Option<Rgba<u8>>
+pub struct QuadInfo{
+    pub depth: u8,
+    pub color: Option<Rgba<u8>>
 }
 
+
 impl Vec2 {
-    pub fn new() -> Self {
-        Self { x: 0, y: 0 }
-    }
-    pub fn smaller(&self, other: &Vec2) -> bool {
-        self.x < other.x || self.y < other.y
+    pub fn is_odd (&self) -> bool {
+        self.x&0xFF_FE > 1 || self.y&0xFF_FE > 1
     }
 }
-impl From<Vec2> for Quad {
-    fn from(v: Vec2) -> Self {
-        Self { pos: v, col: None }
+impl PartialOrd for Vec2 {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match self.x.partial_cmp(&other.x) {
+            Some(Ordering::Equal) => {}
+            ord => return ord,
+        }
+        self.y.partial_cmp(&other.y)
     }
 }
 impl std::fmt::Display for Vec2 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "[{},{}]", self.x, self.y)
+    }
+}
+impl QuadInfo {
+    pub fn new( d: u8 ) -> Self{
+        Self { depth: d, color: None }
     }
 }
