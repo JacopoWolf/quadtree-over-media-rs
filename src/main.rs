@@ -21,7 +21,7 @@ pub struct QuadArgs {
 
     /// Minimun number of iterations
     #[clap(long, value_parser, default_value_t =  quad::DEFAULT_MIN_DEPTH)]
-    pub min_depth: u32,
+    pub min_depth: u8,
 
     /// The minimum allowed size of a quad. Accepts any two number `x` `y` 
     /// separated by an ascii punctuation character, ie: `[23,12]` `{55;56}` `4-2` `007=6`
@@ -46,7 +46,8 @@ pub struct QuadArgs {
     pub treshold: Option<Rgba<u8>>,
 
     /// fill the quads with the relative average color value.
-    /// implies --no-drawover
+    /// implies --no-drawover. 
+    /// If --color is also defined, it will 
     #[clap(long, value_parser)]
     pub fill: bool,
 
@@ -112,7 +113,7 @@ fn parse_vec2(s: &str) -> Result<Vec2, String> {
         Err(_) => return Err("not a valid number".to_owned()),
     };
     let v = Vec2{ x,y };
-    if v.smaller(&DEFAULT_MIN_SIZE) {
+    if v < DEFAULT_MIN_SIZE {
         Err("min quad size is too small".to_owned())
     }
     else{
