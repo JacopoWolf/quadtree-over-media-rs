@@ -10,9 +10,16 @@ pub(super) const DEFAULT_TRESHOLD: image::Rgba<u8> = image::Rgba([8, 8, 8, 8]);
 pub(super) const DEFAULT_MIN_SIZE: Vec2 = Vec2 { x: 3, y: 3 };
 
 /// Draws quads based on the specified image and with the given args
-pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> DynamicImage {
+pub fn draw_quads_on_image(
+    img: &DynamicImage,
+    args: &super::QuadArgs,
+    fillwith: &Option<DynamicImage>,
+) -> DynamicImage {
     let mut img_out = if args.no_drawover || args.fill {
-        DynamicImage::ImageRgba8(RgbaImage::new(img.width(), img.height()))
+        DynamicImage::ImageRgba8(match args.background {
+            Some(bgrc) => RgbaImage::from_pixel(img.width(), img.height(), bgrc),
+            None => RgbaImage::new(img.width(), img.height()),
+        })
     } else {
         img.clone()
     };
@@ -21,6 +28,7 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> Dynami
 
     let mut quadinf_map: HashMap<Vec2, QuadInfo> = HashMap::new();
     let mut depth_sizeinf_map: HashMap<u8, Vec2> = HashMap::new();
+    // create the quadtree
     {
         let mut curr_size = Vec2 {
             x: img.width(),
@@ -83,15 +91,17 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> Dynami
         }
     }
 
-    //TODO add filter to not draw if the color is too bright or too dark
+    let mut fillimage_cache: HashMap<Vec2, DynamicImage> = HashMap::new();
+
     // draws each quad
     for (pos, info) in quadinf_map.iter() {
+        //TODO add filter to not draw if the color is too bright or too dark
         let size = depth_sizeinf_map.get(&info.depth).unwrap();
         /* increase the size by 1 ther's not a quad there next to this one;
-           this check avoids empty line artifacts caused by the modulo 
-           while halfing odd numbers in the quad size */
-        let actual_size: Vec2 = if args.fill {
-            Vec2 {
+        this check avoids empty line artifacts caused by the modulo
+        while halfing odd numbers in the quad size */
+        let actual_size: Option<Vec2> = if args.fill {
+            Some(Vec2 {
                 // find right
                 x: if (pos.x + size.x) < img.width() {
                     match quadinf_map.get(&Vec2 {
@@ -116,16 +126,30 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> Dynami
                 } else {
                     size.y
                 },
-            }
-        } else { *size };
+            })
+        } else {
+            None
+        };
 
-        draw_square(
-            &mut img_out,
-            &args.color.unwrap_or(info.color.unwrap_or(DEFAULT_COLOR)),
-            pos,
-            &actual_size,
-            &info.color,
-        );
+        match fillwith {
+            Some(wdy) => draw_image(
+                &mut img_out,
+                wdy,
+                pos,
+                actual_size.as_ref().unwrap_or(size),
+                &args.color.or(None),
+                &mut fillimage_cache,
+            ),
+            None => {
+                draw_square(
+                    &mut img_out,
+                    pos,
+                    actual_size.as_ref().unwrap_or(size),
+                    &args.color.unwrap_or(info.color.unwrap_or(DEFAULT_COLOR)),
+                    &info.color,
+                );
+            }
+        }
     }
     img_out
 }
@@ -191,9 +215,9 @@ fn average_colors(img: &DynamicImage, pos: &Vec2, size: &Vec2) -> [u8; 4] {
 // draw the square on the image
 fn draw_square(
     img: &mut DynamicImage,
-    border_color: &Rgba<u8>,
     pos: &Vec2,
     size: &Vec2,
+    border_color: &Rgba<u8>,
     fill_color: &Option<Rgba<u8>>,
 ) -> () {
     unsafe {
@@ -211,6 +235,34 @@ fn draw_square(
     }
     for y in 0..size.y {
         img.put_pixel(pos.x, pos.y + y, *border_color);
+    }
+}
+
+fn draw_image(
+    img: &mut DynamicImage,
+    img_todraw: &DynamicImage,
+    pos: &Vec2,
+    size: &Vec2,
+    border_color: &Option<Rgba<u8>>,
+    cache: &mut HashMap<Vec2, DynamicImage>,
+) -> () {
+    let draw = match cache.get(size) {
+        Some(di) => di,
+        None => {
+            cache.insert(
+                *size,
+                img_todraw.resize_exact(size.x, size.y, image::imageops::FilterType::Gaussian),
+            );
+            cache.get(size).unwrap()
+        }
+    };
+    match img.copy_from(draw, pos.x, pos.y) {
+        Ok(_) => (),
+        Err(_) => panic!(),
+    }
+    match border_color {
+        Some(c) => draw_square(img, pos, size, c, &None),
+        None => (),
     }
 }
 

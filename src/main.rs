@@ -12,18 +12,18 @@ use utils::Vec2;
 #[clap(author, version, about)]
 pub struct QuadArgs {
     /// Location of input media. Can be any supported image
-    #[clap(short, value_parser)]
+    #[clap(long, short, value_parser, value_name = "IMAGE")]
     pub input: String,
 
     /// Location of output media
-    #[clap(short, value_parser)]
+    #[clap(long, short, value_parser, value_name = "IMAGE")]
     pub output: String,
 
     /// Minimun number of iterations
     #[clap(long, value_parser, default_value_t =  quad::DEFAULT_MIN_DEPTH)]
     pub min_depth: u8,
 
-    /// The minimum allowed size of a quad. Accepts any two number `x` `y` 
+    /// The minimum allowed size of a quad. Accepts any two number `x` `y`
     /// separated by an ascii punctuation character, ie: `[23,12]` `{55;56}` `4-2` `007=6`
     #[clap(long, value_parser = parse_vec2, default_value_t = quad::DEFAULT_MIN_SIZE)]
     pub min_quad_size: Vec2,
@@ -36,35 +36,53 @@ pub struct QuadArgs {
 
     /// The maximum color difference between quadrants.
     /// A quadrant is split if the color difference is above this
-    ///     value ie: `MAX(avgcolor)-MIN(avgcolor) > threshold`; 
+    ///     value ie: `MAX(avgcolor)-MIN(avgcolor) > threshold`;
     /// a value of `0000` will always split, a value of `FFFF` will never split.
     /// For example if you want to split only on the Alpha channel use `FFF0`
-    /// 
+    ///
     /// Passed as a valid CSS color.
     /// [default: rgba(10,10,10,255)]
     #[clap(long, short, value_parser = parse_color, value_name = "COLOR")]
     pub treshold: Option<Rgba<u8>>,
 
     /// fill the quads with the relative average color value.
-    /// implies --no-drawover. 
-    /// If --color is also defined, it will 
+    /// implies --no-drawover.
+    /// If --color is also defined, it will
     #[clap(long, value_parser)]
     pub fill: bool,
 
+    /// The image used to fill the quads.
+    #[clap(long, value_parser, value_name = "IMAGE")]
+    pub fill_with: Option<String>,
+
+    //TODO add option to recolor media
     /// create the OUTPUT without drawing over a copy of INPUT media
     #[clap(long, value_parser)]
     pub no_drawover: bool,
+
+    /// when a new image is drawn this will be the backround color
+    #[clap(long, short, value_parser = parse_color, value_name = "COLOR")]
+    pub background: Option<Rgba<u8>>
 }
 
 fn main() {
     let args = QuadArgs::parse();
+    if args.fill_with.is_some() && !args.fill {
+        panic!("--fill-with requires --fill flag");
+    }
     _main(&args)
 }
 
-
 //TODO implement video support
-fn _main( args: &QuadArgs ){
-    let img = quad::draw_quads_on_image(&load_image(&args.input), &args);
+fn _main(args: &QuadArgs) {
+    let img = quad::draw_quads_on_image(
+        &load_image(&args.input),
+        &args,
+        &(match &args.fill_with {
+            Some(fimg) => Some(load_image(&fimg)),
+            None => None,
+        }),
+    );
     save(&img, &args);
 }
 
@@ -98,11 +116,12 @@ fn parse_color(s: &str) -> Result<Rgba<u8>, String> {
 
 /// parses vec2. Supported formats: `x,y`, `x;y`, `[x,y]`
 fn parse_vec2(s: &str) -> Result<Vec2, String> {
-    let split: Vec<&str> = s.split(|c: char| c.is_ascii_punctuation())
+    let split: Vec<&str> = s
+        .split(|c: char| c.is_ascii_punctuation())
         .filter(|&p| !p.is_empty())
         .collect();
     if split.len() > 2 {
-        return Err("not a vec2".to_owned())
+        return Err("not a vec2".to_owned());
     }
     let x: u32 = match split[0].parse::<u32>() {
         Ok(v) => v,
@@ -112,16 +131,13 @@ fn parse_vec2(s: &str) -> Result<Vec2, String> {
         Ok(v) => v,
         Err(_) => return Err("not a valid number".to_owned()),
     };
-    let v = Vec2{ x,y };
+    let v = Vec2 { x, y };
     if v < DEFAULT_MIN_SIZE {
         Err("min quad size is too small".to_owned())
-    }
-    else{
+    } else {
         Ok(v)
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -139,6 +155,8 @@ mod tests {
             min_quad_size: Vec2 { x: 10, y: 10 },
             no_drawover: true,
             fill: false,
+            fill_with: None,
+            background: None,
         })
     }
     #[test]
@@ -153,6 +171,24 @@ mod tests {
             min_quad_size: Vec2 { x: 10, y: 10 },
             fill: true,
             no_drawover: true,
+            fill_with: None,
+            background: None,
+        })
+    }
+    #[test]
+    #[ignore]
+    fn it_overimages() {
+        _main(&QuadArgs {
+            input: "tests/src/shapes.png".to_owned(),
+            output: "/tmp/quadtree/shapes.over.png".to_owned(),
+            color: parse_color("orangered").ok(),
+            treshold: parse_color("#000").ok(),
+            min_depth: 6,
+            min_quad_size: Vec2 { x: 16, y: 16 },
+            fill: true,
+            no_drawover: true,
+            fill_with: Some("tests/src/fill.png".to_owned()),
+            background: parse_color("0f0f").ok(),
         })
     }
 
@@ -168,12 +204,12 @@ mod tests {
     }
 
     #[test]
-    fn parses_vec2(){
-        assert_eq!(parse_vec2("10,20").unwrap(), Vec2{x: 10, y: 20});
-        assert_eq!(parse_vec2("-10-20-").unwrap(), Vec2{x: 10, y: 20});
-        assert_eq!(parse_vec2("007=6").unwrap(), Vec2{x: 7, y: 6});
-        assert_eq!(parse_vec2("(015,27)").unwrap(), Vec2{x: 15, y: 27});
-        assert_eq!(parse_vec2("{264,664}").unwrap(), Vec2{x: 264, y: 664});
+    fn parses_vec2() {
+        assert_eq!(parse_vec2("10,20").unwrap(), Vec2 { x: 10, y: 20 });
+        assert_eq!(parse_vec2("-10-20-").unwrap(), Vec2 { x: 10, y: 20 });
+        assert_eq!(parse_vec2("007=6").unwrap(), Vec2 { x: 7, y: 6 });
+        assert_eq!(parse_vec2("(015,27)").unwrap(), Vec2 { x: 15, y: 27 });
+        assert_eq!(parse_vec2("{264,664}").unwrap(), Vec2 { x: 264, y: 664 });
         let mut e = parse_vec2("10-11-12");
         assert!(e.is_err() && e.unwrap_err() == "not a vec2");
         e = parse_vec2("2,2");
