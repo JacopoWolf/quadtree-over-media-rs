@@ -91,63 +91,65 @@ pub fn draw_quads_on_image(
         }
     }
 
-    let mut fillimage_cache: HashMap<Vec2, DynamicImage> = HashMap::new();
-
     // draws each quad
-    for (pos, info) in quadinf_map.iter() {
-        //TODO add filter to not draw if the color is too bright or too dark
-        let size = depth_sizeinf_map.get(&info.depth).unwrap();
-        /* increase the size by 1 ther's not a quad there next to this one;
-        this check avoids empty line artifacts caused by the modulo
-        while halfing odd numbers in the quad size */
-        let actual_size: Option<Vec2> = if args.fill {
-            Some(Vec2 {
-                // find right
-                x: if (pos.x + size.x) < img.width() {
-                    match quadinf_map.get(&Vec2 {
-                        x: pos.x + size.x,
-                        y: pos.y,
-                    }) {
-                        Some(_) => size.x,
-                        None => size.x + 1,
-                    }
-                } else {
-                    size.x
-                },
-                // find bottom
-                y: if (pos.y + size.y) < img.height() {
-                    match quadinf_map.get(&Vec2 {
-                        x: pos.x,
-                        y: pos.y + size.y,
-                    }) {
-                        Some(_) => size.y,
-                        None => size.y + 1,
-                    }
-                } else {
-                    size.y
-                },
-            })
-        } else {
-            None
-        };
+    {
+        let mut fillimage_cache: HashMap<Vec2, DynamicImage> = HashMap::new();
 
-        match fillwith {
-            Some(wdy) => draw_image(
-                &mut img_out,
-                wdy,
-                pos,
-                actual_size.as_ref().unwrap_or(size),
-                &args.color.or(None),
-                &mut fillimage_cache,
-            ),
-            None => {
-                draw_square(
+        for (pos, info) in quadinf_map.iter() {
+            //TODO add filter to not draw if the color is too bright or too dark
+            let size = depth_sizeinf_map.get(&info.depth).unwrap();
+            /* increase the size by 1 ther's not a quad there next to this one;
+            this check avoids empty line artifacts caused by the modulo
+            while halfing odd numbers in the quad size */
+            let actual_size: Option<Vec2> = if args.fill {
+                Some(Vec2 {
+                    // find right
+                    x: if (pos.x + size.x) < img.width() {
+                        match quadinf_map.get(&Vec2 {
+                            x: pos.x + size.x,
+                            y: pos.y,
+                        }) {
+                            Some(_) => size.x,
+                            None => size.x + 1,
+                        }
+                    } else {
+                        size.x
+                    },
+                    // find bottom
+                    y: if (pos.y + size.y) < img.height() {
+                        match quadinf_map.get(&Vec2 {
+                            x: pos.x,
+                            y: pos.y + size.y,
+                        }) {
+                            Some(_) => size.y,
+                            None => size.y + 1,
+                        }
+                    } else {
+                        size.y
+                    },
+                })
+            } else {
+                None
+            };
+
+            match fillwith {
+                Some(wdy) => draw_image(
                     &mut img_out,
+                    wdy,
                     pos,
                     actual_size.as_ref().unwrap_or(size),
-                    &args.color.unwrap_or(info.color.unwrap_or(DEFAULT_COLOR)),
-                    &info.color,
-                );
+                    &args.color.or(None),
+                    &mut fillimage_cache,
+                ),
+                None => {
+                    draw_square(
+                        &mut img_out,
+                        pos,
+                        actual_size.as_ref().unwrap_or(size),
+                        &args.color.unwrap_or(info.color.unwrap_or(DEFAULT_COLOR)),
+                        &info.color,
+                    );
+                }
             }
         }
     }
@@ -256,10 +258,8 @@ fn draw_image(
             cache.get(size).unwrap()
         }
     };
-    match img.copy_from(draw, pos.x, pos.y) {
-        Ok(_) => (),
-        Err(_) => panic!(),
-    }
+    img.copy_from(draw, pos.x, pos.y)
+        .expect("Error while writing sub-image");
     match border_color {
         Some(c) => draw_square(img, pos, size, c, &None),
         None => (),
