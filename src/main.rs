@@ -132,7 +132,7 @@ mod tests {
     fn it_works() {
         _main(&QuadArgs {
             input: "tests/src/shapes.png".to_owned(),
-            output: "tests/out/shapes.png".to_owned(),
+            output: "/tmp/quadtree/shapes.png".to_owned(),
             color: parse_color("magenta").ok(),
             treshold: parse_color("#000").ok(),
             min_depth: 0,
@@ -146,8 +146,8 @@ mod tests {
     fn it_colors() {
         _main(&QuadArgs {
             input: "tests/src/shapes.png".to_owned(),
-            output: "tests/out/shapes.color.png".to_owned(),
-            color: None,
+            output: "/tmp/quadtree/shapes.color.png".to_owned(),
+            color: parse_color("orangered").ok(),
             treshold: parse_color("#000").ok(),
             min_depth: 6,
             min_quad_size: Vec2 { x: 10, y: 10 },
