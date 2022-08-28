@@ -1,4 +1,4 @@
-use std::{hash::Hash, cmp::Ordering};
+use std::{cmp::Ordering, hash::Hash};
 
 use image::Rgba;
 
@@ -9,15 +9,25 @@ pub struct Vec2 {
 }
 
 #[derive(Clone)]
-pub struct QuadInfo{
+pub struct QuadInfo {
     pub depth: u8,
-    pub color: Option<Rgba<u8>>
+    pub color: Option<Rgba<u8>>,
 }
 
-
 impl Vec2 {
-    pub fn is_odd (&self) -> bool {
-        self.x&0xFF_FE > 1 || self.y&0xFF_FE > 1
+    pub const ZERO: Vec2 = Vec2 { x: 0, y: 0 };
+    /// returns the halfed Vec2 and the remainder for x and y
+    pub fn half(&self) -> (Vec2, Vec2) {
+        (
+            Vec2 {
+                x: self.x / 2,
+                y: self.y / 2,
+            },
+            Vec2 {
+                x: self.x & 0x1,
+                y: self.y & 0x1,
+            },
+        )
     }
 }
 impl PartialOrd for Vec2 {
@@ -35,7 +45,10 @@ impl std::fmt::Display for Vec2 {
     }
 }
 impl QuadInfo {
-    pub fn new( d: u8 ) -> Self{
-        Self { depth: d, color: None }
+    pub fn new(d: u8) -> Self {
+        Self {
+            depth: d,
+            color: None,
+        }
     }
 }

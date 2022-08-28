@@ -11,40 +11,43 @@ pub(super) const DEFAULT_MIN_SIZE: Vec2 = Vec2 { x: 3, y: 3 };
 
 /// Draws quads based on the specified image and with the given args
 pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> DynamicImage {
-    let mut imgcopy = if args.no_drawover || args.fill {
+    let mut img_out = if args.no_drawover || args.fill {
         DynamicImage::ImageRgba8(RgbaImage::new(img.width(), img.height()))
     } else {
         img.clone()
     };
-
     let max_depth = ((img.width() * img.height()) as f64).log2() as u8 / 2;
     println!("Max iterations: {max_depth}");
 
-    let mut curr_depth: u8 = 1;
-    let mut quads_map: HashMap<Vec2, QuadInfo> = HashMap::new();
-    let mut depths_size_map: HashMap<u8, Vec2> = HashMap::new();
+    let mut quadinf_map: HashMap<Vec2, QuadInfo> = HashMap::new();
+    let mut depth_sizeinf_map: HashMap<u8, Vec2> = HashMap::new();
     {
-        let mut queue_in: Vec<Vec2> = vec![Vec2 { x: 0, y: 0 }];
-        let mut queue_out: Vec<(Vec2, QuadInfo)>;
+        let mut curr_size = Vec2 {
+            x: img.width(),
+            y: img.height(),
+        };
+        depth_sizeinf_map.insert(0, curr_size);
+        let mut curr_depth: u8 = 1;
+        let mut quadpos_in: Vec<Vec2> = vec![Vec2::ZERO];
+        let mut quadinf_out: Vec<(Vec2, QuadInfo)>;
 
-        while curr_depth < max_depth && !queue_in.is_empty() {
+        while curr_depth < max_depth && !quadpos_in.is_empty() {
             // halves size at each iteration
-            let curr_size = Vec2 {
-                x: img.width() >> curr_depth,
-                y: img.height() >> curr_depth,
-            };
+            let h = curr_size.half();
+            curr_size = h.0;
             if curr_size < args.min_quad_size {
                 println!("reached minimum possible quad size!");
                 break;
             }
-            depths_size_map.insert(curr_depth, curr_size);
-            println!("Iteration: {}, size {}", curr_depth, curr_size);
+            depth_sizeinf_map.insert(curr_depth, curr_size);
 
-            queue_out = Vec::from_par_iter(
-                queue_in
+            println!("Iteration: {}, size {}, mod {}", curr_depth, curr_size, h.1);
+
+            quadinf_out = Vec::from_par_iter(
+                quadpos_in
                     .par_iter()
                     .map(|node| -> Option<[(Vec2, QuadInfo); 4]> {
-                        let mut subs = generate_subnodes(node, &curr_size, curr_depth);
+                        let mut subs = generate_subnodes(node, &curr_size, &h.1, curr_depth);
                         if curr_depth > args.min_depth || args.fill {
                             let averages = [
                                 average_colors(&img, &subs[0].0, &curr_size),
@@ -71,36 +74,69 @@ pub fn draw_quads_on_image(img: &DynamicImage, args: &super::QuadArgs) -> Dynami
                     .flatten() // flats Option, removes None
                     .flatten(), // SelectMany
             );
-            queue_in = Vec::with_capacity(queue_out.len());
-            for (k, v) in queue_out {
-                quads_map.insert(k, v);
-                queue_in.push(k);
+            quadpos_in = Vec::with_capacity(quadinf_out.len());
+            for (k, v) in quadinf_out {
+                quadinf_map.insert(k, v);
+                quadpos_in.push(k);
             }
             curr_depth += 1;
         }
     }
 
+    //TODO add filter to not draw if the color is too bright or too dark
     // draws each quad
-    for (pos, info) in quads_map.iter() {
-        //TODO add filter to not draw if the color is too bright or too dark
-        //TODO check for is_odd and add 1 pixel to the position of the next quad of bigger size
+    for (pos, info) in quadinf_map.iter() {
+        let size = depth_sizeinf_map.get(&info.depth).unwrap();
+        /* increase the size by 1 ther's not a quad there next to this one;
+           this check avoids empty line artifacts caused by the modulo 
+           while halfing odd numbers in the quad size */
+        let actual_size: Vec2 = if args.fill {
+            Vec2 {
+                // find right
+                x: if (pos.x + size.x) < img.width() {
+                    match quadinf_map.get(&Vec2 {
+                        x: pos.x + size.x,
+                        y: pos.y,
+                    }) {
+                        Some(_) => size.x,
+                        None => size.x + 1,
+                    }
+                } else {
+                    size.x
+                },
+                // find bottom
+                y: if (pos.y + size.y) < img.height() {
+                    match quadinf_map.get(&Vec2 {
+                        x: pos.x,
+                        y: pos.y + size.y,
+                    }) {
+                        Some(_) => size.y,
+                        None => size.y + 1,
+                    }
+                } else {
+                    size.y
+                },
+            }
+        } else { *size };
+
         draw_square(
-            &mut imgcopy,
+            &mut img_out,
             &args.color.unwrap_or(info.color.unwrap_or(DEFAULT_COLOR)),
             pos,
-            &depths_size_map.get(&info.depth).unwrap(),
+            &actual_size,
             &info.color,
-        )
+        );
     }
-    imgcopy
+    img_out
 }
 
-fn generate_subnodes(pos: &Vec2, size: &Vec2, depth: u8) -> [(Vec2, QuadInfo); 4] {
+// create subnodes of the specified size for a given pos and with the given modulo in between
+fn generate_subnodes(pos: &Vec2, size: &Vec2, modulo: &Vec2, depth: u8) -> [(Vec2, QuadInfo); 4] {
     [
         (Vec2 { x: pos.x, y: pos.y }, QuadInfo::new(depth)),
         (
             Vec2 {
-                x: pos.x + size.x,
+                x: pos.x + size.x + modulo.x,
                 y: pos.y,
             },
             QuadInfo::new(depth),
@@ -108,14 +144,14 @@ fn generate_subnodes(pos: &Vec2, size: &Vec2, depth: u8) -> [(Vec2, QuadInfo); 4
         (
             Vec2 {
                 x: pos.x,
-                y: pos.y + size.y,
+                y: pos.y + size.y + modulo.y,
             },
             QuadInfo::new(depth),
         ),
         (
             Vec2 {
-                x: pos.x + size.x,
-                y: pos.y + size.y,
+                x: pos.x + size.x + modulo.x,
+                y: pos.y + size.y + modulo.y,
             },
             QuadInfo::new(depth),
         ),
@@ -132,6 +168,7 @@ fn are_le_treshold(sub_averages: &[[u8; 4]; 4], treshold: &Rgba<u8>) -> bool {
         })
 }
 
+/// calculates the average of each RGBA component individually
 fn average_colors(img: &DynamicImage, pos: &Vec2, size: &Vec2) -> [u8; 4] {
     let section = img.view(pos.x, pos.y, size.x, size.y);
     let mut c: u64 = 0;
@@ -151,6 +188,7 @@ fn average_colors(img: &DynamicImage, pos: &Vec2, size: &Vec2) -> [u8; 4] {
     ]
 }
 
+// draw the square on the image
 fn draw_square(
     img: &mut DynamicImage,
     border_color: &Rgba<u8>,
@@ -170,15 +208,9 @@ fn draw_square(
     // outlines
     for x in 0..size.x {
         img.put_pixel(pos.x + x, pos.y, *border_color);
-        if size.x % 2 == 1 {
-            img.put_pixel(pos.x + x, pos.y + size.y, *border_color);
-        }
     }
     for y in 0..size.y {
         img.put_pixel(pos.x, pos.y + y, *border_color);
-        if size.y % 2 == 1 {
-            img.put_pixel(pos.x + size.x, pos.y + y, *border_color);
-        }
     }
 }
 
