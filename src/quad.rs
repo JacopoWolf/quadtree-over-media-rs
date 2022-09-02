@@ -130,7 +130,7 @@ pub fn draw_quads(
     for (pos, info) in quadinf_map.iter() {
         if draw_range.is_some()
             && !color_between(
-                &info.color.unwrap(),
+                &info.color,
                 &draw_range.unwrap()[0],
                 &draw_range.unwrap()[1],
             )
@@ -230,8 +230,12 @@ fn are_le_treshold(sub_averages: &[[u8; 4]; 4], treshold: &Rgba<u8>) -> bool {
         })
 }
 
-fn color_between(color: &Rgba<u8>, from: &Rgba<u8>, to: &Rgba<u8>) -> bool {
-    (0..4).all(|i| color[i] >= from[i] && color[i] <= to[i])
+fn color_between(color: &Option<Rgba<u8>>, from: &Rgba<u8>, to: &Rgba<u8>) -> bool {
+    match color {
+        Some(color) => (0..4).all(|i| color[i] >= from[i] && color[i] <= to[i]),
+        None => false,
+    }
+    
 }
 
 /// calculates the average of each RGBA component individually

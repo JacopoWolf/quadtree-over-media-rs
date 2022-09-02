@@ -556,7 +556,7 @@ dependencies = [
 
 [[package]]
 name = "quadtree-over-media"
-version = "0.7.1"
+version = "0.7.5"
 dependencies = [
  "clap",
  "csscolorparser",

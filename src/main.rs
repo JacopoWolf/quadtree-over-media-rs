@@ -91,14 +91,16 @@ fn main() {
 
 fn _main_image(args: &QuadArgs) {
     let img = load_image(&args.input);
+    let keepcolors = args.no_drawover || args.fill || args.fill_with.is_some();
+    println!("will keep averages");
     let (quadmap, sizemap) = calc_quads(
         &img,
         &args.min_quad_size,
         args.min_depth,
         &args.treshold.unwrap_or(DEFAULT_TRESHOLD),
-        args.fill || args.fill_with.is_some() || args.no_drawover,
+        keepcolors,
     );
-    let out = if args.no_drawover || args.fill || args.fill_with.is_some() {
+    let out = if keepcolors {
         draw_quads(
             &quadmap,
             &sizemap,
