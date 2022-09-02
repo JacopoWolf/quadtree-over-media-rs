@@ -1,9 +1,11 @@
 pub mod quad;
 mod utils;
 
+use std::{fs::File, path::Path};
+
 use clap::Parser;
-use image::{DynamicImage, Rgba};
-use quad::DEFAULT_MIN_SIZE;
+use image::{codecs::*, DynamicImage, ImageEncoder, ImageError, ImageFormat, Rgba};
+use quad::*;
 use utils::Vec2;
 
 /// Calculate and draw quads over images, detecting color areas
@@ -20,7 +22,7 @@ pub struct QuadArgs {
     pub output: String,
 
     /// Minimun number of iterations
-    #[clap(long, value_parser, default_value_t =  quad::DEFAULT_MIN_DEPTH)]
+    #[clap(long, value_parser, default_value_t = quad::DEFAULT_MIN_DEPTH)]
     pub min_depth: u8,
 
     /// The minimum allowed size of a quad. Accepts any two number `x` `y`
@@ -51,18 +53,29 @@ pub struct QuadArgs {
     #[clap(long, value_parser)]
     pub fill: bool,
 
+    //TODO add option to recolor media
     /// The image used to fill the quads.
     #[clap(long, value_parser, value_name = "IMAGE")]
     pub fill_with: Option<String>,
 
-    //TODO add option to recolor media
     /// create the OUTPUT without drawing over a copy of INPUT media
     #[clap(long, value_parser)]
     pub no_drawover: bool,
 
     /// when a new image is drawn this will be the backround color
     #[clap(long, short, value_parser = parse_color, value_name = "COLOR")]
-    pub background: Option<Rgba<u8>>
+    pub background: Option<Rgba<u8>>,
+
+    /// the compression
+    #[clap(long, arg_enum, default_value_t = ImgOpt::Default)]
+    pub output_quality: ImgOpt,
+}
+
+#[derive(Debug, Copy, Clone, clap::ValueEnum)]
+pub enum ImgOpt {
+    Default,
+    Min,
+    Max,
 }
 
 fn main() {
@@ -70,20 +83,37 @@ fn main() {
     if args.fill_with.is_some() && !args.fill {
         panic!("--fill-with requires --fill flag");
     }
-    _main(&args)
+
+    //TODO implement video support
+    _main_image(&args)
 }
 
-//TODO implement video support
-fn _main(args: &QuadArgs) {
-    let img = quad::draw_quads_on_image(
-        &load_image(&args.input),
-        &args,
-        &(match &args.fill_with {
-            Some(fimg) => Some(load_image(&fimg)),
-            None => None,
-        }),
+fn _main_image(args: &QuadArgs) {
+    let img = load_image(&args.input);
+    let (quadmap, sizemap) = calc_quads(
+        &img,
+        &args.min_quad_size,
+        args.min_depth,
+        &args.treshold.unwrap_or(DEFAULT_TRESHOLD),
+        args.fill,
     );
-    save(&img, &args);
+    let out = if args.no_drawover || args.fill || args.fill_with.is_some() {
+        draw_quads(
+            &quadmap,
+            &sizemap,
+            &args.color,
+            &args.background,
+            &(match &args.fill_with {
+                Some(fimg) => Some(load_image(&fimg)),
+                None => None,
+            }),
+        )
+    } else {
+        draw_quads_on(&img, &quadmap, &sizemap, &args.color)
+    };
+    println!("saving image to {}", args.output);
+    save(&out, &args).expect("error while saving image");
+    println!("... done!")
 }
 
 pub(crate) fn load_image(source: &String) -> DynamicImage {
@@ -102,9 +132,44 @@ pub(crate) fn load_image(source: &String) -> DynamicImage {
     }
 }
 
-pub fn save(img: &DynamicImage, args: &QuadArgs) {
-    println!("saving image to {}", args.output);
-    img.save(&args.output).expect("error while saving image");
+pub fn save(img: &DynamicImage, args: &QuadArgs) -> Result<(), ImageError> {
+    let path = Path::new(&args.output);
+    match ImageFormat::from_path(path).expect("output is not a supported format!") {
+        ImageFormat::Png => png::PngEncoder::new_with_quality(
+            stream(path),
+            match args.output_quality {
+                ImgOpt::Default => png::CompressionType::Default,
+                ImgOpt::Min => png::CompressionType::Fast,
+                ImgOpt::Max => png::CompressionType::Best,
+            },
+            png::FilterType::Adaptive,
+        )
+        .write_image(
+            &img.to_rgba8(),
+            img.width(),
+            img.height(),
+            image::ColorType::Rgba8,
+        ),
+        ImageFormat::Jpeg => jpeg::JpegEncoder::new_with_quality(
+            stream(path),
+            match args.output_quality {
+                ImgOpt::Default => 70,
+                ImgOpt::Min => 30,
+                ImgOpt::Max => 100,
+            },
+        )
+        .write_image(
+            &img.to_rgba8(),
+            img.width(),
+            img.height(),
+            image::ColorType::Rgba8,
+        ),
+        _ => img.save(path),
+    }
+}
+
+fn stream(path: &Path) -> File {
+    File::create(path).expect("cannot open output file path")
 }
 
 fn parse_color(s: &str) -> Result<Rgba<u8>, String> {
@@ -146,7 +211,24 @@ mod tests {
     #[test]
     #[ignore]
     fn it_works() {
-        _main(&QuadArgs {
+        _main_image(&QuadArgs {
+            input: "tests/src/shapes.png".to_owned(),
+            output: "/tmp/quadtree/shapes.over.png".to_owned(),
+            color: parse_color("lime").ok(),
+            treshold: parse_color("#000").ok(),
+            min_depth: 0,
+            min_quad_size: Vec2 { x: 10, y: 10 },
+            no_drawover: false,
+            fill: false,
+            fill_with: None,
+            background: None,
+            output_quality: ImgOpt::Max,
+        })
+    }
+    #[test]
+    #[ignore]
+    fn it_works_newimg() {
+        _main_image(&QuadArgs {
             input: "tests/src/shapes.png".to_owned(),
             output: "/tmp/quadtree/shapes.png".to_owned(),
             color: parse_color("magenta").ok(),
@@ -157,12 +239,13 @@ mod tests {
             fill: false,
             fill_with: None,
             background: None,
+            output_quality: ImgOpt::Max,
         })
     }
     #[test]
     #[ignore]
     fn it_colors() {
-        _main(&QuadArgs {
+        _main_image(&QuadArgs {
             input: "tests/src/shapes.png".to_owned(),
             output: "/tmp/quadtree/shapes.color.png".to_owned(),
             color: parse_color("orangered").ok(),
@@ -173,14 +256,15 @@ mod tests {
             no_drawover: true,
             fill_with: None,
             background: None,
+            output_quality: ImgOpt::Max,
         })
     }
     #[test]
     #[ignore]
     fn it_overimages() {
-        _main(&QuadArgs {
+        _main_image(&QuadArgs {
             input: "tests/src/shapes.png".to_owned(),
-            output: "/tmp/quadtree/shapes.over.png".to_owned(),
+            output: "/tmp/quadtree/shapes.fill.png".to_owned(),
             color: parse_color("orangered").ok(),
             treshold: parse_color("#000").ok(),
             min_depth: 6,
@@ -189,6 +273,7 @@ mod tests {
             no_drawover: true,
             fill_with: Some("tests/src/fill.png".to_owned()),
             background: parse_color("0f0f").ok(),
+            output_quality: ImgOpt::Max,
         })
     }
 
