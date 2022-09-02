@@ -69,6 +69,11 @@ pub struct QuadArgs {
     /// the compression
     #[clap(long, arg_enum, default_value_t = ImgOpt::Default)]
     pub output_quality: ImgOpt,
+
+    #[clap(long, value_parser = parse_color, value_name = "COLOR")]
+    pub filter_gt: Option<Rgba<u8>>,
+    #[clap(long, value_parser = parse_color, value_name = "COLOR")]
+    pub filter_lt: Option<Rgba<u8>>,
 }
 
 #[derive(Debug, Copy, Clone, clap::ValueEnum)]
@@ -80,10 +85,6 @@ pub enum ImgOpt {
 
 fn main() {
     let args = QuadArgs::parse();
-    if args.fill_with.is_some() && !args.fill {
-        panic!("--fill-with requires --fill flag");
-    }
-
     //TODO implement video support
     _main_image(&args)
 }
@@ -95,7 +96,7 @@ fn _main_image(args: &QuadArgs) {
         &args.min_quad_size,
         args.min_depth,
         &args.treshold.unwrap_or(DEFAULT_TRESHOLD),
-        args.fill,
+        args.fill || args.fill_with.is_some() || args.no_drawover,
     );
     let out = if args.no_drawover || args.fill || args.fill_with.is_some() {
         draw_quads(
@@ -107,6 +108,7 @@ fn _main_image(args: &QuadArgs) {
                 Some(fimg) => Some(load_image(&fimg)),
                 None => None,
             }),
+            &gen_fill_range(&args)
         )
     } else {
         draw_quads_on(&img, &quadmap, &sizemap, &args.color)
@@ -115,6 +117,8 @@ fn _main_image(args: &QuadArgs) {
     save(&out, &args).expect("error while saving image");
     println!("... done!")
 }
+
+
 
 pub(crate) fn load_image(source: &String) -> DynamicImage {
     println!("loading {}", source);
@@ -172,6 +176,24 @@ fn stream(path: &Path) -> File {
     File::create(path).expect("cannot open output file path")
 }
 
+fn gen_fill_range(args: &QuadArgs) -> Option<[Rgba<u8>;2]> {
+    if args.filter_lt.is_none() && args.filter_gt.is_none(){
+        None
+    }
+    else {
+        Some([
+            match args.filter_lt {
+                Some(c) => c,
+                None => parse_color("0000").unwrap()
+            },
+            match args.filter_gt {
+                Some(c) => c,
+                None => parse_color("ffff").unwrap()
+            },
+        ])   
+    }
+}
+
 fn parse_color(s: &str) -> Result<Rgba<u8>, String> {
     match csscolorparser::parse(s) {
         Ok(c) => Ok(Rgba { 0: c.to_rgba8() }),
@@ -207,75 +229,6 @@ fn parse_vec2(s: &str) -> Result<Vec2, String> {
 #[cfg(test)]
 mod tests {
     use crate::*;
-
-    #[test]
-    #[ignore]
-    fn it_works() {
-        _main_image(&QuadArgs {
-            input: "tests/src/shapes.png".to_owned(),
-            output: "/tmp/quadtree/shapes.over.png".to_owned(),
-            color: parse_color("lime").ok(),
-            treshold: parse_color("#000").ok(),
-            min_depth: 0,
-            min_quad_size: Vec2 { x: 10, y: 10 },
-            no_drawover: false,
-            fill: false,
-            fill_with: None,
-            background: None,
-            output_quality: ImgOpt::Max,
-        })
-    }
-    #[test]
-    #[ignore]
-    fn it_works_newimg() {
-        _main_image(&QuadArgs {
-            input: "tests/src/shapes.png".to_owned(),
-            output: "/tmp/quadtree/shapes.png".to_owned(),
-            color: parse_color("magenta").ok(),
-            treshold: parse_color("#000").ok(),
-            min_depth: 0,
-            min_quad_size: Vec2 { x: 10, y: 10 },
-            no_drawover: true,
-            fill: false,
-            fill_with: None,
-            background: None,
-            output_quality: ImgOpt::Max,
-        })
-    }
-    #[test]
-    #[ignore]
-    fn it_colors() {
-        _main_image(&QuadArgs {
-            input: "tests/src/shapes.png".to_owned(),
-            output: "/tmp/quadtree/shapes.color.png".to_owned(),
-            color: parse_color("orangered").ok(),
-            treshold: parse_color("#000").ok(),
-            min_depth: 6,
-            min_quad_size: Vec2 { x: 10, y: 10 },
-            fill: true,
-            no_drawover: true,
-            fill_with: None,
-            background: None,
-            output_quality: ImgOpt::Max,
-        })
-    }
-    #[test]
-    #[ignore]
-    fn it_overimages() {
-        _main_image(&QuadArgs {
-            input: "tests/src/shapes.png".to_owned(),
-            output: "/tmp/quadtree/shapes.fill.png".to_owned(),
-            color: parse_color("orangered").ok(),
-            treshold: parse_color("#000").ok(),
-            min_depth: 6,
-            min_quad_size: Vec2 { x: 16, y: 16 },
-            fill: true,
-            no_drawover: true,
-            fill_with: Some("tests/src/fill.png".to_owned()),
-            background: parse_color("0f0f").ok(),
-            output_quality: ImgOpt::Max,
-        })
-    }
 
     #[test]
     fn parses_rgba() {

@@ -110,13 +110,14 @@ pub fn draw_quads_on(
     copy
 }
 
-/// Draws quads based on the specified image and with the given args
+/// Draws quads based on the specified image and with the given args only if the color satisfies the filter
 pub fn draw_quads(
     quadinf_map: &HashMap<Vec2, QuadInfo>,
     depth_sizeinf_map: &HashMap<u8, Vec2>,
     border_color: &Option<Rgba<u8>>,
     background_color: &Option<Rgba<u8>>,
     quad_img: &Option<DynamicImage>,
+    draw_range: &Option<[Rgba<u8>; 2]>,
 ) -> DynamicImage {
     let img_size = depth_sizeinf_map.get(&0).unwrap();
     let mut img_out = DynamicImage::ImageRgba8(match background_color {
@@ -127,7 +128,15 @@ pub fn draw_quads(
     let mut fillimage_cache: HashMap<Vec2, DynamicImage> = HashMap::new();
 
     for (pos, info) in quadinf_map.iter() {
-        //TODO add filter to not draw if the color is too bright or too dark
+        if draw_range.is_some()
+            && !color_between(
+                &info.color.unwrap(),
+                &draw_range.unwrap()[0],
+                &draw_range.unwrap()[1],
+            )
+        {
+            continue;
+        }
         let size = depth_sizeinf_map.get(&info.depth).unwrap();
         /* increase the size by 1 ther's not a quad there next to this one;
         this check avoids empty line artifacts caused by the modulo
@@ -219,6 +228,10 @@ fn are_le_treshold(sub_averages: &[[u8; 4]; 4], treshold: &Rgba<u8>) -> bool {
             let min = sub_averages.iter().map(|&a| a[i]).min().unwrap_or(0);
             return (max - min) <= treshold[i];
         })
+}
+
+fn color_between(color: &Rgba<u8>, from: &Rgba<u8>, to: &Rgba<u8>) -> bool {
+    (0..4).all(|i| color[i] >= from[i] && color[i] <= to[i])
 }
 
 /// calculates the average of each RGBA component individually
