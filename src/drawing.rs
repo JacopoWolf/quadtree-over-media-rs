@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use image::*;
-use crate::utils::*;
 use crate::quad::*;
+use crate::utils::*;
+use image::*;
 
 /// create a copy of the original and draw quads outlines on it
 pub fn draw_quads_on(
@@ -43,7 +43,7 @@ pub fn draw_quads(
     });
     for (pos, info) in quadinf_map.iter() {
         if draw_range.is_some()
-            && !color_between(
+            && !is_color_between(
                 &info.color,
                 &draw_range.unwrap()[0],
                 &draw_range.unwrap()[1],
@@ -51,36 +51,13 @@ pub fn draw_quads(
         {
             continue;
         }
-        let size = depthsize_map.get(&info.depth).unwrap();
-        /* increase the size by 1 ther's not a quad there next to this one;
-        this check avoids empty line artifacts caused by the modulo
-        while halfing odd numbers in the quad size */
-        let actual_size: Option<Vec2> = Some(Vec2 {
-            // find right
-            x: if (pos.x + size.x) < img_size.x {
-                match quadinf_map.get(&Vec2 {
-                    x: pos.x + size.x,
-                    y: pos.y,
-                }) {
-                    Some(_) => size.x,
-                    None => size.x + 1,
-                }
-            } else {
-                size.x
-            },
-            // find bottom
-            y: if (pos.y + size.y) < img_size.y {
-                match quadinf_map.get(&Vec2 {
-                    x: pos.x,
-                    y: pos.y + size.y,
-                }) {
-                    Some(_) => size.y,
-                    None => size.y + 1,
-                }
-            } else {
-                size.y
-            },
-        });
+
+        let size_adj = adjust_quad_size(
+            pos,
+            depthsize_map.get(&info.depth).unwrap(),
+            quadinf_map,
+            img_size,
+        );
 
         //TODO add option to recolor based on info.color
         match quad_img {
@@ -88,7 +65,7 @@ pub fn draw_quads(
                 &mut img_out,
                 wdy,
                 pos,
-                actual_size.as_ref().unwrap_or(size),
+                &size_adj,
                 &border_color.or(None),
                 &mut scaledimage_cache,
             ),
@@ -96,7 +73,7 @@ pub fn draw_quads(
                 draw_square(
                     &mut img_out,
                     pos,
-                    actual_size.as_ref().unwrap_or(size),
+                    &size_adj,
                     &border_color.unwrap_or(info.color.unwrap_or(DEFAULT_COLOR)),
                     &info.color,
                 );
@@ -158,9 +135,46 @@ fn draw_image(
     }
 }
 
-fn color_between(color: &Option<Rgba<u8>>, from: &Rgba<u8>, to: &Rgba<u8>) -> bool {
+pub(crate) fn is_color_between(color: &Option<Rgba<u8>>, from: &Rgba<u8>, to: &Rgba<u8>) -> bool {
     match color {
         Some(color) => (0..4).all(|i| color[i] >= from[i] && color[i] <= to[i]),
         None => false,
+    }
+}
+
+/// Increase the size by 1 ther's not a quad there next to this one;
+/// this check avoids empty line artifacts caused by the modulo
+/// while halfing odd numbers in the quad size 
+fn adjust_quad_size(
+    pos: &Vec2,
+    size: &Vec2,
+    quadinf_map: &HashMap<Vec2, QuadInfo>,
+    bounds: &Vec2,
+) -> Vec2 {
+    Vec2 {
+        // find right
+        x: if (pos.x + size.x) < bounds.x {
+            match quadinf_map.get(&Vec2 {
+                x: pos.x + size.x,
+                y: pos.y,
+            }) {
+                Some(_) => size.x,
+                None => size.x + 1,
+            }
+        } else {
+            size.x
+        },
+        // find bottom
+        y: if (pos.y + size.y) < bounds.y {
+            match quadinf_map.get(&Vec2 {
+                x: pos.x,
+                y: pos.y + size.y,
+            }) {
+                Some(_) => size.y,
+                None => size.y + 1,
+            }
+        } else {
+            size.y
+        },
     }
 }
