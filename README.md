@@ -1,11 +1,8 @@
-<center>
-
-<h1>Quadtree over media</h1>
-
-![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/jacopowolf/quadtree-over-media-rs?include_prereleases)
-![GitHub top language](https://img.shields.io/github/languages/top/jacopowolf/quadtree-over-media-rs?logo=rust)
-
-</center>
+<h1 align="center">Quadtree over media</h1>
+<p align="center">
+<img src="https://img.shields.io/github/v/tag/jacopowolf/quadtree-over-media-rs?include_prereleases&label=latest&sort=semver"/>
+<img src="https://img.shields.io/github/languages/top/jacopowolf/quadtree-over-media-rs" />
+</p>
 
 ---
 
@@ -14,7 +11,7 @@
 
 ![](https://img.shields.io/badge/-I'm_still_learning_rust_please_be_gentle-orange?logo=rust&logoColor=000000)
 
-This program calculates and draws "quads" on images in varius input formats (for supported formats see [image crate](https://crates.io/crates/image)).
+This program calculates and draws "quads" on images in varius input formats (for supported formats see the [image crate](https://crates.io/crates/image)).
 
 Everything is completely customizable, from rgba tresholds to subdivide the quads to how to draw the quads.
 
