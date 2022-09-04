@@ -2,13 +2,13 @@ use std::{cmp::Ordering, hash::Hash};
 
 use image::Rgba;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Vec2 {
     pub x: u32,
     pub y: u32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub struct QuadInfo {
     pub depth: u8,
     pub color: Option<Rgba<u8>>,

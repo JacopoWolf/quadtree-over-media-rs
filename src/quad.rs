@@ -5,9 +5,9 @@ use image::*;
 use rayon::prelude::*;
 
 pub(super) const DEFAULT_MIN_DEPTH: u8 = 4;
-pub(super) const DEFAULT_COLOR: image::Rgba<u8> = image::Rgba([255, 20, 147, 255]); //DeepPink
-pub(super) const DEFAULT_TRESHOLD: image::Rgba<u8> = image::Rgba([8, 8, 8, 8]);
-pub(super) const DEFAULT_MIN_SIZE: Vec2 = Vec2 { x: 3, y: 3 };
+pub(super) const DEFAULT_COLOR: Rgba<u8> = Rgba([255, 20, 147, 255]); //DeepPink
+pub(super) const DEFAULT_TRESHOLD: Rgba<u8> = Rgba([8, 8, 8, 8]);
+pub(super) const DEFAULT_MIN_SIZE: Vec2 = Vec2 { x: 4, y: 4 };
 
 pub fn calc_quads(
     img: &DynamicImage,
@@ -27,13 +27,6 @@ pub fn calc_quads(
         y: img.height(),
     };
     depth_sizeinf_map.insert(0, curr_size);
-    quadinf_map.insert(
-        Vec2::ZERO,
-        QuadInfo {
-            depth: 0,
-            color: None,
-        },
-    );
 
     let mut curr_depth: u8 = 1;
     let mut quadpos_in: Vec<Vec2> = vec![Vec2::ZERO];
@@ -86,6 +79,20 @@ pub fn calc_quads(
         }
         curr_depth += 1;
     }
+
+    if do_calc_color && !quadinf_map.contains_key(&Vec2::ZERO) {
+        let imgs = Vec2 {
+            x: img.width(),
+            y: img.height(),
+        };
+        quadinf_map.insert(
+            Vec2::ZERO,
+            QuadInfo {
+                depth: 0,
+                color: Some(Rgba(average_colors(&img, &Vec2::ZERO, &imgs))),
+            },
+        );
+    }
     (quadinf_map, depth_sizeinf_map)
 }
 
@@ -120,12 +127,12 @@ pub fn draw_quads(
     draw_range: &Option<[Rgba<u8>; 2]>,
 ) -> DynamicImage {
     let img_size = depth_sizeinf_map.get(&0).unwrap();
+
+    let mut scaledimage_cache: HashMap<Vec2, DynamicImage> = HashMap::new();
     let mut img_out = DynamicImage::ImageRgba8(match background_color {
         Some(bgrc) => RgbaImage::from_pixel(img_size.x, img_size.y, *bgrc),
         None => RgbaImage::new(img_size.x, img_size.y),
     });
-
-    let mut fillimage_cache: HashMap<Vec2, DynamicImage> = HashMap::new();
 
     for (pos, info) in quadinf_map.iter() {
         if draw_range.is_some()
@@ -176,7 +183,7 @@ pub fn draw_quads(
                 pos,
                 actual_size.as_ref().unwrap_or(size),
                 &border_color.or(None),
-                &mut fillimage_cache,
+                &mut scaledimage_cache,
             ),
             None => {
                 draw_square(
@@ -235,7 +242,6 @@ fn color_between(color: &Option<Rgba<u8>>, from: &Rgba<u8>, to: &Rgba<u8>) -> bo
         Some(color) => (0..4).all(|i| color[i] >= from[i] && color[i] <= to[i]),
         None => false,
     }
-    
 }
 
 /// calculates the average of each RGBA component individually
@@ -313,44 +319,72 @@ fn draw_image(
 #[cfg(test)]
 mod tests {
     use super::*;
-    const TEST_AVERAGES_SIMPLE: [[u8; 4]; 4] = [
-        [064, 064, 064, 064],
-        [100, 100, 100, 100],
-        [100, 100, 100, 100],
-        [128, 128, 128, 128],
-    ];
-    const TEST_AVERAGES_APHAONLY: [[u8; 4]; 4] = [
-        [0, 0, 0, 064],
-        [0, 0, 0, 100],
-        [0, 0, 0, 100],
-        [0, 0, 0, 128],
-    ];
-    #[test]
-    fn averages_are_equal_treshold() {
-        assert_eq!(
-            are_le_treshold(&TEST_AVERAGES_SIMPLE, &Rgba([96, 96, 96, 96])),
-            true
-        );
+    const BLACK: Rgba<u8> = Rgba::<u8>([0, 0, 0, 0]);
+    mod quads {
+        use super::*;
+
+        #[test]
+        fn gens_only_one_quad() {
+            let img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(64, 64, BLACK));
+            let (info_map, size_map) =
+                calc_quads(&img, &DEFAULT_MIN_SIZE, 0, &Rgba::<u8>([0, 0, 0, 0]), true);
+            assert_eq!(
+                info_map,
+                HashMap::from([(
+                    Vec2::ZERO,
+                    QuadInfo {
+                        depth: 0,
+                        color: Some(BLACK)
+                    }
+                )])
+            );
+            assert_eq!(
+                size_map,
+                HashMap::from([(0, Vec2 { x: 64, y: 64 }), (1, Vec2 { x: 32, y: 32 })])
+            )
+        }
     }
-    #[test]
-    fn averages_are_under_treshold() {
-        assert_eq!(
-            are_le_treshold(&TEST_AVERAGES_SIMPLE, &Rgba([10, 10, 10, 10])),
-            false
-        )
-    }
-    #[test]
-    fn alpha_is_under_treshold() {
-        assert_eq!(
-            are_le_treshold(&TEST_AVERAGES_APHAONLY, &Rgba([255, 255, 255, 96])),
-            true
-        )
-    }
-    #[test]
-    fn alpha_is_not_under_treshold() {
-        assert_eq!(
-            are_le_treshold(&TEST_AVERAGES_APHAONLY, &Rgba([255, 255, 255, 97])),
-            true
-        )
+    mod color_calc {
+        use super::*;
+        const TEST_AVERAGES_SIMPLE: [[u8; 4]; 4] = [
+            [064, 064, 064, 064],
+            [100, 100, 100, 100],
+            [100, 100, 100, 100],
+            [128, 128, 128, 128],
+        ];
+        const TEST_AVERAGES_APHAONLY: [[u8; 4]; 4] = [
+            [0, 0, 0, 064],
+            [0, 0, 0, 100],
+            [0, 0, 0, 100],
+            [0, 0, 0, 128],
+        ];
+        #[test]
+        fn averages_are_equal_treshold() {
+            assert_eq!(
+                are_le_treshold(&TEST_AVERAGES_SIMPLE, &Rgba([96, 96, 96, 96])),
+                true
+            );
+        }
+        #[test]
+        fn averages_are_under_treshold() {
+            assert_eq!(
+                are_le_treshold(&TEST_AVERAGES_SIMPLE, &Rgba([10, 10, 10, 10])),
+                false
+            )
+        }
+        #[test]
+        fn alpha_is_under_treshold() {
+            assert_eq!(
+                are_le_treshold(&TEST_AVERAGES_APHAONLY, &Rgba([255, 255, 255, 96])),
+                true
+            )
+        }
+        #[test]
+        fn alpha_is_not_under_treshold() {
+            assert_eq!(
+                are_le_treshold(&TEST_AVERAGES_APHAONLY, &Rgba([255, 255, 255, 97])),
+                true
+            )
+        }
     }
 }
