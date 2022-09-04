@@ -1,5 +1,4 @@
 /target
 
 # test images
-tests/src
-tests/out
+imgs

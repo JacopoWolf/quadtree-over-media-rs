@@ -30,6 +30,11 @@ impl Vec2 {
         )
     }
 }
+impl From<(u32,u32)> for Vec2 {
+    fn from(src: (u32,u32)) -> Self {
+        Vec2 { x: src.0, y: src.1 }
+    }
+}
 impl PartialOrd for Vec2 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match self.x.partial_cmp(&other.x) {
@@ -41,7 +46,7 @@ impl PartialOrd for Vec2 {
 }
 impl std::fmt::Display for Vec2 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{},{}]", self.x, self.y)
+        write!(f, "({},{})", self.x, self.y)
     }
 }
 impl QuadInfo {

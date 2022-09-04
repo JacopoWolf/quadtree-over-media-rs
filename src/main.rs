@@ -1,12 +1,14 @@
+mod drawing;
 pub mod quad;
 mod utils;
 
 use std::{fs::File, path::Path};
 
+use crate::drawing::*;
+use crate::quad::*;
+use crate::utils::Vec2;
 use clap::Parser;
 use image::{codecs::*, DynamicImage, ImageEncoder, ImageError, ImageFormat, Rgba};
-use quad::*;
-use utils::Vec2;
 
 /// Calculate and draw quads over images, detecting color areas
 /// to do nice stuff with that
@@ -49,12 +51,13 @@ pub struct QuadArgs {
 
     /// fill the quads with the relative average color value.
     /// implies --no-drawover.
-    /// If --color is also defined, it will
     #[clap(long, value_parser)]
     pub fill: bool,
 
     //TODO add option to recolor media
     /// The image used to fill the quads.
+    /// If `--fill` is also specified, it will multiply each pixel of this image
+    /// by the average color of the quad.
     #[clap(long, value_parser, value_name = "IMAGE")]
     pub fill_with: Option<String>,
 
@@ -110,7 +113,7 @@ fn _main_image(args: &QuadArgs) {
                 Some(fimg) => Some(load_image(&fimg)),
                 None => None,
             }),
-            &gen_fill_range(&args)
+            &gen_fill_range(&args),
         )
     } else {
         draw_quads_on(&img, &quadmap, &sizemap, &args.color)
@@ -119,8 +122,6 @@ fn _main_image(args: &QuadArgs) {
     save(&out, &args).expect("error while saving image");
     println!("... done!")
 }
-
-
 
 pub(crate) fn load_image(source: &String) -> DynamicImage {
     println!("loading {}", source);
@@ -178,21 +179,20 @@ fn stream(path: &Path) -> File {
     File::create(path).expect("cannot open output file path")
 }
 
-fn gen_fill_range(args: &QuadArgs) -> Option<[Rgba<u8>;2]> {
-    if args.filter_lt.is_none() && args.filter_gt.is_none(){
+fn gen_fill_range(args: &QuadArgs) -> Option<[Rgba<u8>; 2]> {
+    if args.filter_lt.is_none() && args.filter_gt.is_none() {
         None
-    }
-    else {
+    } else {
         Some([
             match args.filter_lt {
                 Some(c) => c,
-                None => parse_color("0000").unwrap()
+                None => parse_color("0000").unwrap(),
             },
             match args.filter_gt {
                 Some(c) => c,
-                None => parse_color("ffff").unwrap()
+                None => parse_color("ffff").unwrap(),
             },
-        ])   
+        ])
     }
 }
 
