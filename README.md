@@ -20,20 +20,22 @@ Everything is completely customizable, from rgba tresholds to subdivide the quad
 
 Examples use this CC image from wikipedia https://commons.wikimedia.org/wiki/File:Rainbow_in_Budapest.jpg
 
-Below examples all add parameters to this base command: `quadtree-over-media -i Rainbow_in_Budapest.jpg -o rainbow-something.jpg`
+Below examples all add parameters to this base command:
+
+`quadtree-over-media -i Rainbow_in_Budapest.jpg -o rainbow-something.jpg`
 
 
-<code>--fill</code><br>
-<img src="docs/rainbow-fill.jpg" width="400">
+* <code>--fill</code><br>
+<img src="docs/rainbow-fill.jpg" width="300">
 
-<code>--fill-with dog-whitebg.jpg</code><br>
-<img src="docs/rainbow-dog-nofill.jpg" width="400">
+* <code>--fill-with dog-whitebg.jpg</code><br>
+<img src="docs/rainbow-dog-nofill.jpg" width="300">
 
-<code>--fill --fill-with dog-whitebg.jpg</code><br>
-<img src="docs/rainbow-dog.jpg" width="400">
+* <code>--fill --fill-with dog-whitebg.jpg</code><br>
+<img src="docs/rainbow-dog.jpg" width="300">
 
-<code>--fill --fill-with dog-whitebg.jpg --treshold 000</code><br>
-<img src="docs/rainbow-dog-t000.jpg" width="400">
+* <code>--fill --fill-with dog-whitebg.jpg --treshold 000</code><br>
+<img src="docs/rainbow-dog-t000.jpg" width="300">
 
 ### Planned features
 * further optimization
