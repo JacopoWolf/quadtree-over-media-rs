@@ -31,6 +31,7 @@ pub fn draw_quads(
     depthsize_map: &HashMap<u8, Vec2>,
     border_color: &Option<Rgba<u8>>,
     background_color: &Option<Rgba<u8>>,
+    multiply: bool,
     quad_img: &Option<DynamicImage>,
     draw_range: &Option<[Rgba<u8>; 2]>,
 ) -> DynamicImage {
@@ -59,14 +60,17 @@ pub fn draw_quads(
             img_size,
         );
 
-        //TODO add option to recolor based on info.color
         match quad_img {
-            Some(wdy) => draw_image(
+            Some(qimg) => draw_image(
                 &mut img_out,
-                wdy,
+                qimg,
                 pos,
                 &size_adj,
-                &border_color.or(None),
+                &border_color,
+                match multiply {
+                    true => &info.color,
+                    false => &None,
+                },
                 &mut scaledimage_cache,
             ),
             None => {
@@ -115,6 +119,7 @@ fn draw_image(
     pos: &Vec2,
     size: &Vec2,
     border_color: &Option<Rgba<u8>>,
+    multiply_color: &Option<Rgba<u8>>,
     cache: &mut HashMap<Vec2, DynamicImage>,
 ) -> () {
     let draw = match cache.get(size) {
@@ -127,8 +132,11 @@ fn draw_image(
             cache.get(size).unwrap()
         }
     };
-    img.copy_from(draw, pos.x, pos.y)
-        .expect("Error while writing sub-image");
+    match multiply_color {
+        Some(c) => img.copy_from(&multiply_image_by(draw, c), pos.x, pos.y),
+        None => img.copy_from(draw, pos.x, pos.y),
+    }
+    .expect("Error while writing sub-image");
     match border_color {
         Some(c) => draw_square(img, pos, size, c, &None),
         None => (),
@@ -142,9 +150,30 @@ pub(crate) fn is_color_between(color: &Option<Rgba<u8>>, from: &Rgba<u8>, to: &R
     }
 }
 
+fn multiply_image_by(src: &DynamicImage, by: &Rgba<u8>) -> DynamicImage {
+    DynamicImage::ImageRgba8(
+        RgbaImage::from_vec(
+            src.width(),
+            src.height(),
+            src.pixels()
+                .flat_map(|(_, _, p)| multiply_pixels(&p, by))
+                .collect(),
+        )
+        .unwrap(),
+    )
+}
+fn multiply_pixels(a: &Rgba<u8>, b: &Rgba<u8>) -> [u8; 4] {
+    [
+        ((a[0] as u16) * (b[0] as u16) / 255) as u8,
+        ((a[1] as u16) * (b[1] as u16) / 255) as u8,
+        ((a[2] as u16) * (b[2] as u16) / 255) as u8,
+        a[3],
+    ]
+}
+
 /// Increase the size by 1 ther's not a quad there next to this one;
 /// this check avoids empty line artifacts caused by the modulo
-/// while halfing odd numbers in the quad size 
+/// while halfing odd numbers in the quad size
 fn adjust_quad_size(
     pos: &Vec2,
     size: &Vec2,

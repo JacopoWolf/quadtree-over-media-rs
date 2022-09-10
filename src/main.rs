@@ -109,6 +109,7 @@ fn _main_image(args: &QuadArgs) {
             &sizemap,
             &args.color,
             &args.background,
+            args.fill,
             &(match &args.fill_with {
                 Some(fimg) => Some(load_image(&fimg)),
                 None => None,
@@ -245,14 +246,19 @@ mod tests {
 
     #[test]
     fn parses_vec2() {
-        assert_eq!(parse_vec2("10,20").unwrap(), Vec2 { x: 10, y: 20 });
-        assert_eq!(parse_vec2("-10-20-").unwrap(), Vec2 { x: 10, y: 20 });
-        assert_eq!(parse_vec2("007=6").unwrap(), Vec2 { x: 7, y: 6 });
-        assert_eq!(parse_vec2("(015,27)").unwrap(), Vec2 { x: 15, y: 27 });
-        assert_eq!(parse_vec2("{264,664}").unwrap(), Vec2 { x: 264, y: 664 });
-        let mut e = parse_vec2("10-11-12");
-        assert!(e.is_err() && e.unwrap_err() == "not a vec2");
-        e = parse_vec2("2,2");
-        assert!(e.is_err() && e.unwrap_err() == "min quad size is too small");
+        assert_eq!(parse_vec2("10,20"), Ok(Vec2 { x: 10, y: 20 }));
+        assert_eq!(parse_vec2("-10-20-"), Ok(Vec2 { x: 10, y: 20 }));
+        assert_eq!(parse_vec2("007=6"), Ok(Vec2 { x: 7, y: 6 }));
+        assert_eq!(parse_vec2("(015,27)"), Ok(Vec2 { x: 15, y: 27 }));
+        assert_eq!(parse_vec2("{264,664}"), Ok(Vec2 { x: 264, y: 664 }));
+    }
+
+    #[test]
+    fn err_parsing_vec2() {
+        assert_eq!(parse_vec2("10-11-12"), Err("not a vec2".to_owned()));
+        assert_eq!(
+            parse_vec2("2,2"),
+            Err("min quad size is too small".to_owned())
+        );
     }
 }
