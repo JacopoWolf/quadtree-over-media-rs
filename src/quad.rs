@@ -48,10 +48,10 @@ pub fn calc_quads(
                     let mut subs = generate_subnodes(node, &curr_size, &h.1, curr_depth);
                     if curr_depth > min_depth || do_calc_color {
                         let averages = [
-                            average_colors(&img, &subs[0].0, &curr_size),
-                            average_colors(&img, &subs[1].0, &curr_size),
-                            average_colors(&img, &subs[2].0, &curr_size),
-                            average_colors(&img, &subs[3].0, &curr_size),
+                            average_colors(img, &subs[0].0, &curr_size),
+                            average_colors(img, &subs[1].0, &curr_size),
+                            average_colors(img, &subs[2].0, &curr_size),
+                            average_colors(img, &subs[3].0, &curr_size),
                         ];
                         if are_le_treshold(&averages, treshold) {
                             return None;
@@ -83,7 +83,7 @@ pub fn calc_quads(
             QuadInfo {
                 depth: 0,
                 color: Some(Rgba(average_colors(
-                    &img,
+                    img,
                     &Vec2::ZERO,
                     &Vec2::from(img.dimensions()),
                 ))),
@@ -127,7 +127,7 @@ fn are_le_treshold(sub_averages: &[[u8; 4]; 4], treshold: &Rgba<u8>) -> bool {
         .all(|i| {
             let max = sub_averages.iter().map(|&a| a[i]).max().unwrap_or(255);
             let min = sub_averages.iter().map(|&a| a[i]).min().unwrap_or(0);
-            return (max - min) <= treshold[i];
+            (max - min) <= treshold[i]
         })
 }
 

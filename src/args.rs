@@ -81,7 +81,7 @@ pub enum ImgOpt {
 
 pub(super) fn parse_color(s: &str) -> Result<Rgba<u8>, String> {
     match csscolorparser::parse(s) {
-        Ok(c) => Ok(Rgba { 0: c.to_rgba8() }),
+        Ok(c) => Ok(Rgba(c.to_rgba8())),
         Err(e) => Err(e.to_string()),
     }
 }

@@ -36,17 +36,14 @@ fn _main_image(args: &QuadArgs) {
             &args.color,
             &args.background,
             args.fill,
-            &(match &args.fill_with {
-                Some(fimg) => Some(load_image(&fimg)),
-                None => None,
-            }),
-            &gen_fill_range(&args),
+            &args.fill_with.as_ref().map(load_image),
+            &gen_fill_range(args),
         )
     } else {
         draw_quads_on(&img, &quadmap, &sizemap, &args.color)
     };
     println!("saving image to {}", args.output);
-    save(&out, &args).expect("error while saving image");
+    save(&out, args).expect("error while saving image");
     println!("... done!")
 }
 

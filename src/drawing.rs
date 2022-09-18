@@ -66,7 +66,7 @@ pub fn draw_quads(
                 qimg,
                 pos,
                 &size_adj,
-                &border_color,
+                border_color,
                 match multiply {
                     true => &info.color,
                     false => &None,
@@ -94,7 +94,7 @@ fn draw_square(
     size: &Vec2,
     border_color: &Rgba<u8>,
     fill_color: &Option<Rgba<u8>>,
-) -> () {
+) {
     unsafe {
         if fill_color.is_some() {
             for y in 1..size.y {
@@ -121,7 +121,7 @@ fn draw_image(
     border_color: &Option<Rgba<u8>>,
     multiply_color: &Option<Rgba<u8>>,
     cache: &mut HashMap<Vec2, DynamicImage>,
-) -> () {
+) {
     let draw = match cache.get(size) {
         Some(di) => di,
         None => {
