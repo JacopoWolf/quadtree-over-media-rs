@@ -8,7 +8,7 @@
 
 ---
 
-This program calculates and draws "quads" on images in varius input formats (for supported formats see the [image crate](https://crates.io/crates/image)).
+This program calculates and draws "quads" on images in variuos input formats (for supported formats see the [image crate](https://crates.io/crates/image)).
 
 ![YouTube Video Views](https://img.shields.io/youtube/views/G434WPz8MRk?style=social)
 [demonstration video](https://youtu.be/G434WPz8MRk) 
@@ -26,16 +26,16 @@ Below examples all add parameters to this base command:
 
 
 * <code>--fill</code><br>
-<img src="docs/rainbow-fill.jpg" width="300">
+<img src="docs/rainbow-fill.jpg" width="400">
 
 * <code>--fill-with dog-whitebg.jpg</code><br>
-<img src="docs/rainbow-dog-nofill.jpg" width="300">
+<img src="docs/rainbow-dog-nofill.jpg" width="400">
 
 * <code>--fill --fill-with dog-whitebg.jpg</code><br>
-<img src="docs/rainbow-dog.jpg" width="300">
+<img src="docs/rainbow-dog.jpg" width="400">
 
 * <code>--fill --fill-with dog-whitebg.jpg --treshold 000</code><br>
-<img src="docs/rainbow-dog-t000.jpg" width="300">
+<img src="docs/rainbow-dog-t000.jpg" width="400">
 
 ### Planned features
 * further optimization

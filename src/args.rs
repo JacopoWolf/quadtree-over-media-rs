@@ -4,12 +4,11 @@ use image::Rgba;
 use crate::quad;
 use crate::utils::Vec2;
 
-/// Calculate and draw quads over images, detecting color areas
-/// to do nice stuff with that
+/// Calculate and draw quads over images in various formats
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
 pub struct QuadArgs {
-    /// Location of input media. Can be any supported image
+    /// Location of input media
     #[clap(long, short, value_parser, value_name = "IMAGE")]
     pub input: String,
 
@@ -17,57 +16,63 @@ pub struct QuadArgs {
     #[clap(long, short, value_parser, value_name = "IMAGE")]
     pub output: String,
 
-    /// Minimun number of iterations
+    /// Minimun number of iterations that will always be performed
     #[clap(long, value_parser, default_value_t = quad::DEFAULT_MIN_DEPTH)]
     pub min_depth: u8,
 
-    /// The minimum allowed size of a quad. Accepts any two number `x` `y`
-    /// separated by an ascii punctuation character, ie: `[23,12]` `{55;56}` `4-2` `007=6`
+    /// Minimum allowed size of a quad. Accepts any two number `x` `y`
+    /// separated by an ascii punctuation character, examples: `[23,12]` `{55;56}` `4-2` `007=6`
     #[clap(long, value_parser = parse_vec2, default_value_t = quad::DEFAULT_MIN_SIZE)]
     pub min_quad_size: Vec2,
 
-    /// The color of the lines defining the quads.
-    /// Passed as a valid CSS color.
+    /// Color of the lines defining the quads
     /// [default: "deeppink"]
     #[clap(long, short, value_parser = parse_color)]
     pub color: Option<Rgba<u8>>,
 
-    /// The maximum color difference between quadrants.
+    /// Maximum color difference between quadrants
+    /// 
     /// A quadrant is split if the color difference is above this
-    ///     value ie: `MAX(avgcolor)-MIN(avgcolor) > threshold`;
-    /// a value of `0000` will always split, a value of `FFFF` will never split.
-    /// For example if you want to split only on the Alpha channel use `FFF0`
+    ///     value ie: `MAX(avgcolor)-MIN(avgcolor) > threshold`.
+    /// A value of `0000` will always split, a value of `FFFF` will never split;
+    /// for example to split only on the Alpha channel use `FFF0`
     ///
     /// Passed as a valid CSS color.
     /// [default: rgba(10,10,10,255)]
     #[clap(long, short, value_parser = parse_color, value_name = "COLOR")]
     pub treshold: Option<Rgba<u8>>,
 
-    /// fill the quads with the relative average color value.
-    /// implies --no-drawover.
+    /// Fill the quads with the relative average color value
+    /// 
+    /// Implies --no-drawover.
     #[clap(long, value_parser)]
     pub fill: bool,
 
-    /// The image used to fill the quads.
+    /// Image used to fill the quads
+    /// 
     /// If `--fill` is also specified, it will multiply each pixel of this image
-    /// by the average color of the quad.
+    /// by the average color of the quad
     #[clap(long, value_parser, value_name = "IMAGE")]
     pub fill_with: Option<String>,
 
-    /// create the OUTPUT without drawing over a copy of INPUT media
+    /// Create the OUTPUT without drawing over a copy of INPUT media
     #[clap(long, value_parser)]
     pub no_drawover: bool,
 
-    /// when a new image is drawn this will be the backround color
+    /// When a new image is drawn this will be the default backround color
     #[clap(long, short, value_parser = parse_color, value_name = "COLOR")]
     pub background: Option<Rgba<u8>>,
 
-    /// the compression
+    /// Output image quality, lower quality = smaller files and vice versa.
+    /// 
+    /// Supported only for PNG and JPEG
     #[clap(long, arg_enum, default_value_t = ImgOpt::Default)]
     pub output_quality: ImgOpt,
 
+    /// Draw the quad only if the average color is greater than this value
     #[clap(long, value_parser = parse_color, value_name = "COLOR")]
     pub filter_gt: Option<Rgba<u8>>,
+    /// Draw the quad only if the average color is lesser than this value
     #[clap(long, value_parser = parse_color, value_name = "COLOR")]
     pub filter_lt: Option<Rgba<u8>>,
 }
