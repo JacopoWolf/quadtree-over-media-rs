@@ -543,6 +543,7 @@ dependencies = [
 name = "quadtree-over-media"
 version = "0.8.1"
 dependencies = [
+ "atty",
  "clap",
  "csscolorparser",
  "image",

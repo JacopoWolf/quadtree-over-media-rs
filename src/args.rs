@@ -25,13 +25,8 @@ pub struct QuadArgs {
     #[clap(long, value_parser = parse_vec2, default_value_t = quad::DEFAULT_MIN_SIZE)]
     pub min_quad_size: Vec2,
 
-    /// Color of the lines defining the quads
-    /// [default: "deeppink"]
-    #[clap(long, short, value_parser = parse_color)]
-    pub color: Option<Rgba<u8>>,
-
     /// Maximum color difference between quadrants
-    /// 
+    ///
     /// A quadrant is split if the color difference is above this
     ///     value ie: `MAX(avgcolor)-MIN(avgcolor) > threshold`.
     /// A value of `0000` will always split, a value of `FFFF` will never split;
@@ -42,32 +37,37 @@ pub struct QuadArgs {
     #[clap(long, short, value_parser = parse_color, value_name = "COLOR")]
     pub treshold: Option<Rgba<u8>>,
 
-    /// Fill the quads with the relative average color value
-    /// 
-    /// Implies --no-drawover.
-    #[clap(long, value_parser)]
-    pub fill: bool,
-
-    /// Image used to fill the quads
-    /// 
-    /// If `--fill` is also specified, it will multiply each pixel of this image
-    /// by the average color of the quad
-    #[clap(long, value_parser, value_name = "IMAGE")]
-    pub fill_with: Option<String>,
-
-    /// Create the OUTPUT without drawing over a copy of INPUT media
-    #[clap(long, value_parser)]
-    pub no_drawover: bool,
+    /// Color of the lines defining the quads
+    /// [default: "deeppink"]
+    #[clap(long, short, value_parser = parse_color)]
+    pub color: Option<Rgba<u8>>,
 
     /// When a new image is drawn this will be the default backround color
     #[clap(long, short, value_parser = parse_color, value_name = "COLOR")]
     pub background: Option<Rgba<u8>>,
 
+    /// Create the OUTPUT without drawing over a copy of INPUT media
+    #[clap(long, value_parser)]
+    pub no_drawover: bool,
+
+    /// Fill the quads with the relative average color value
+    ///
+    /// Implies --no-drawover.
+    #[clap(long, value_parser)]
+    pub fill: bool,
+
+    /// Image used to fill the quads
+    ///
+    /// If `--fill` is also specified, it will multiply each pixel of this image
+    /// by the average color of the quad
+    #[clap(long, value_parser, value_name = "IMAGE")]
+    pub fill_with: Option<String>,
+
     /// Output image quality, lower quality = smaller files and vice versa.
-    /// 
+    ///
     /// Supported only for PNG and JPEG
-    #[clap(long, arg_enum, default_value_t = ImgOpt::Default)]
-    pub output_quality: ImgOpt,
+    #[clap(long, arg_enum, default_value_t = ImgQuality::Default)]
+    pub output_quality: ImgQuality,
 
     /// Draw the quad only if the average color is greater than this value
     #[clap(long, value_parser = parse_color, value_name = "COLOR")]
@@ -77,8 +77,8 @@ pub struct QuadArgs {
     pub filter_lt: Option<Rgba<u8>>,
 }
 
-#[derive(Debug, Copy, Clone, clap::ValueEnum)]
-pub enum ImgOpt {
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+pub enum ImgQuality {
     Default,
     Min,
     Max,
