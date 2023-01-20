@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 use image::Rgba;
 
@@ -5,24 +7,25 @@ use crate::quad;
 use crate::utils::Vec2;
 
 /// Calculate and draw quads over images in various formats
-#[derive(Parser, Debug)]
-#[clap(author, version, about)]
+#[derive(Parser)]
+#[command(name = "Quadtree over Media")]
+#[command(version, about, long_about = None)]
 pub struct QuadArgs {
     /// Location of input media
-    #[clap(long, short, value_parser, value_name = "IMAGE")]
-    pub input: String,
+    #[arg(long, short, value_parser, value_name = "IMAGE")]
+    pub input: PathBuf,
 
     /// Location of output media
-    #[clap(long, short, value_parser, value_name = "IMAGE")]
-    pub output: String,
+    #[arg(long, short, value_parser, value_name = "IMAGE")]
+    pub output: PathBuf,
 
     /// Minimun number of iterations that will always be performed
-    #[clap(long, value_parser, default_value_t = quad::DEFAULT_MIN_DEPTH)]
+    #[arg(long, value_parser, default_value_t = quad::DEFAULT_MIN_DEPTH)]
     pub min_depth: u8,
 
     /// Minimum allowed size of a quad. Accepts any two number `x` `y`
     /// separated by an ascii punctuation character, examples: `[23,12]` `{55;56}` `4-2` `007=6`
-    #[clap(long, value_parser = parse_vec2, default_value_t = quad::DEFAULT_MIN_SIZE)]
+    #[arg(long, value_parser = parse_vec2, default_value_t = quad::DEFAULT_MIN_SIZE)]
     pub min_quad_size: Vec2,
 
     /// Maximum color difference between quadrants
@@ -34,53 +37,56 @@ pub struct QuadArgs {
     ///
     /// Passed as a valid CSS color.
     /// [default: rgba(10,10,10,255)]
-    #[clap(long, short, value_parser = parse_color, value_name = "COLOR")]
+    #[arg(long, short, value_parser = parse_color, value_name = "COLOR")]
     pub treshold: Option<Rgba<u8>>,
 
     /// Color of the lines defining the quads
     /// [default: "deeppink"]
-    #[clap(long, short, value_parser = parse_color)]
+    #[arg(long, short, value_parser = parse_color)]
     pub color: Option<Rgba<u8>>,
 
     /// When a new image is drawn this will be the default backround color
-    #[clap(long, short, value_parser = parse_color, value_name = "COLOR")]
+    #[arg(long, short, value_parser = parse_color, value_name = "COLOR")]
     pub background: Option<Rgba<u8>>,
 
     /// Create the OUTPUT without drawing over a copy of INPUT media
-    #[clap(long, value_parser)]
+    #[arg(long, value_parser)]
     pub no_drawover: bool,
 
     /// Fill the quads with the relative average color value
     ///
     /// Implies --no-drawover.
-    #[clap(long, value_parser)]
+    #[arg(long, value_parser)]
     pub fill: bool,
 
     /// Image used to fill the quads
     ///
     /// If `--fill` is also specified, it will multiply each pixel of this image
     /// by the average color of the quad
-    #[clap(long, value_parser, value_name = "IMAGE")]
-    pub fill_with: Option<String>,
+    #[arg(long, value_parser, value_name = "IMAGE")]
+    pub fill_with: Option<PathBuf>,
 
     /// Output image quality, lower quality = smaller files and vice versa.
     ///
     /// Supported only for PNG and JPEG
-    #[clap(long, arg_enum, default_value_t = ImgQuality::Default)]
+    #[arg(long, value_enum, default_value_t = ImgQuality::Default)]
     pub output_quality: ImgQuality,
 
     /// Draw the quad only if the average color is greater than this value
-    #[clap(long, value_parser = parse_color, value_name = "COLOR")]
+    #[arg(long, value_parser = parse_color, value_name = "COLOR")]
     pub filter_gt: Option<Rgba<u8>>,
     /// Draw the quad only if the average color is lesser than this value
-    #[clap(long, value_parser = parse_color, value_name = "COLOR")]
+    #[arg(long, value_parser = parse_color, value_name = "COLOR")]
     pub filter_lt: Option<Rgba<u8>>,
 }
 
-#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 pub enum ImgQuality {
+    /// Default image quality options
     Default,
+    /// Optimize for size
     Min,
+    /// Optimize for quality
     Max,
 }
 

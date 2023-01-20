@@ -8,6 +8,7 @@ use crate::drawing::*;
 use crate::quad::*;
 use clap::Parser;
 use image::{codecs::*, *};
+use std::path::PathBuf;
 use std::{fs::File, path::Path};
 
 fn main() {
@@ -47,13 +48,13 @@ fn do_single_image(args: &QuadArgs) {
     } else {
         draw_quads_on(&img, &quadmap, &sizemap, &args.color)
     };
-    println!("saving image to {}", args.output);
+    println!("saving image to {}", args.output.to_str().unwrap());
     save(&out, args).expect("error while saving image");
     println!("... done!")
 }
 
-pub fn load_image(source: &String) -> DynamicImage {
-    println!("loading {}", source);
+pub fn load_image(source: &PathBuf) -> DynamicImage {
+    println!("loading {}", source.to_str().unwrap());
     match image::io::Reader::open(&source)
         .expect("error while opening image")
         .with_guessed_format()
