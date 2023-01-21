@@ -1,24 +1,67 @@
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{ArgGroup, Args, Parser};
 use image::Rgba;
 
 use crate::quad;
 use crate::utils::Vec2;
 
+const VALUE_NAME_COLOR: &str = "COLOR";
+const VALUE_NAME_IMAGE: &str = "IMAGE";
+const ARG_GRP_IN: &str = "input_args";
+const ARG_GRP_OUT: &str = "output_args";
+
 /// Calculate and draw quads over images in various formats
 #[derive(Parser)]
 #[command(name = "Quadtree over Media")]
 #[command(version, about, long_about = None)]
-pub struct QuadArgs {
+//
+pub(super) struct QomCli {
+    #[command(flatten)]
+    pub io: IOArgs,
+
+    #[command(flatten)]
+    pub calc: QuadArgs,
+
+    #[command(flatten)]
+    pub image: DrawingArgs,
+
+    /// Output verbosity, repeat for more verbosity
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    pub verbose: u8,
+}
+
+//TODO add custom parser for piping
+#[derive(Args)]
+#[command(group(ArgGroup::new(ARG_GRP_IN).required(true)))]
+#[command(group(ArgGroup::new(ARG_GRP_OUT).required(true)))]
+pub(super) struct IOArgs {
     /// Location of input media
-    #[arg(long, short, value_parser, value_name = "IMAGE")]
-    pub input: PathBuf,
+    #[arg(long, short, value_parser, value_name = VALUE_NAME_IMAGE, group = ARG_GRP_IN)]
+    pub input: Option<PathBuf>,
+
+    /// the input is coming from a pipe. must be a string in the `WxHx(colordepth)`.
+    /// for example `1920x1080xRGB`
+    #[arg(long = "pipein", value_name="FORMAT DETAILS", group = ARG_GRP_IN)]
+    pub input_pipe: Option<String>,
 
     /// Location of output media
-    #[arg(long, short, value_parser, value_name = "IMAGE")]
-    pub output: PathBuf,
+    #[arg(long, short, value_parser, value_name = VALUE_NAME_IMAGE, group = ARG_GRP_OUT)]
+    pub output: Option<PathBuf>,
 
+    /// the output pipe colordepth details
+    #[arg(long = "pipeout", value_name="FORMAT DETAILS", group = ARG_GRP_OUT)]
+    pub output_pipe: Option<String>,
+
+    /// Output image quality, lower quality = smaller files and vice versa.
+    ///
+    /// Supported only for PNG and JPEG
+    #[arg(long, value_enum, default_value_t = ImgQuality::Default)]
+    pub output_quality: ImgQuality,
+}
+
+#[derive(Args)]
+pub(super) struct QuadArgs {
     /// Minimun number of iterations that will always be performed
     #[arg(long, value_parser, default_value_t = quad::DEFAULT_MIN_DEPTH)]
     pub min_depth: u8,
@@ -37,16 +80,19 @@ pub struct QuadArgs {
     ///
     /// Passed as a valid CSS color.
     /// [default: rgba(10,10,10,255)]
-    #[arg(long, short, value_parser = parse_color, value_name = "COLOR")]
+    #[arg(long, short, value_parser = parse_color, value_name = VALUE_NAME_COLOR)]
     pub treshold: Option<Rgba<u8>>,
+}
 
+#[derive(Args)]
+pub(super) struct DrawingArgs {
     /// Color of the lines defining the quads
     /// [default: "deeppink"]
     #[arg(long, short, value_parser = parse_color)]
     pub color: Option<Rgba<u8>>,
 
     /// When a new image is drawn this will be the default backround color
-    #[arg(long, short, value_parser = parse_color, value_name = "COLOR")]
+    #[arg(long, short, value_parser = parse_color, value_name = VALUE_NAME_COLOR)]
     pub background: Option<Rgba<u8>>,
 
     /// Create the OUTPUT without drawing over a copy of INPUT media
@@ -63,20 +109,14 @@ pub struct QuadArgs {
     ///
     /// If `--fill` is also specified, it will multiply each pixel of this image
     /// by the average color of the quad
-    #[arg(long, value_parser, value_name = "IMAGE")]
+    #[arg(long, value_parser, value_name = VALUE_NAME_IMAGE)]
     pub fill_with: Option<PathBuf>,
 
-    /// Output image quality, lower quality = smaller files and vice versa.
-    ///
-    /// Supported only for PNG and JPEG
-    #[arg(long, value_enum, default_value_t = ImgQuality::Default)]
-    pub output_quality: ImgQuality,
-
     /// Draw the quad only if the average color is greater than this value
-    #[arg(long, value_parser = parse_color, value_name = "COLOR")]
+    #[arg(long, value_parser = parse_color, value_name = VALUE_NAME_COLOR)]
     pub filter_gt: Option<Rgba<u8>>,
     /// Draw the quad only if the average color is lesser than this value
-    #[arg(long, value_parser = parse_color, value_name = "COLOR")]
+    #[arg(long, value_parser = parse_color, value_name = VALUE_NAME_COLOR)]
     pub filter_lt: Option<Rgba<u8>>,
 }
 
@@ -90,6 +130,7 @@ pub enum ImgQuality {
     Max,
 }
 
+/// uses colorparser to parse the given color
 pub(super) fn parse_color(s: &str) -> Result<Rgba<u8>, String> {
     match csscolorparser::parse(s) {
         Ok(c) => Ok(Rgba(c.to_rgba8())),

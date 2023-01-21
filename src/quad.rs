@@ -9,13 +9,14 @@ pub(super) const DEFAULT_COLOR: Rgba<u8> = Rgba([255, 20, 147, 255]); //DeepPink
 pub(super) const DEFAULT_TRESHOLD: Rgba<u8> = Rgba([8, 8, 8, 8]);
 pub(super) const DEFAULT_MIN_SIZE: Vec2 = Vec2 { x: 4, y: 4 };
 
+//TODO remove println! and substitute with logging
 pub fn calc_quads(
     img: &DynamicImage,
     min_quad_size: &Vec2,
     min_depth: u8,
     treshold: &Rgba<u8>,
     do_calc_color: bool,
-) -> (HashMap<Vec2, QuadInfo>, HashMap<u8, Vec2>) {
+) -> QuadStructure {
     let max_depth = ((img.width() * img.height()) as f64).log2() as u8 / 2;
     println!("Max iterations: {max_depth}");
 
@@ -90,7 +91,10 @@ pub fn calc_quads(
             },
         );
     }
-    (quadinf_map, depthsize_map)
+    QuadStructure{
+        quads: quadinf_map,
+        sizes: depthsize_map
+    }
 }
 
 // create subnodes of the specified size for a given pos and with the given modulo in between
@@ -160,10 +164,10 @@ mod tests {
         #[test]
         fn gens_only_one_quad() {
             let img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(64, 64, BLACK));
-            let (info_map, size_map) =
+            let quadimg =
                 calc_quads(&img, &DEFAULT_MIN_SIZE, 0, &Rgba::<u8>([0, 0, 0, 0]), true);
             assert_eq!(
-                info_map,
+                quadimg.quads,
                 HashMap::from([(
                     Vec2::ZERO,
                     QuadInfo {
@@ -173,7 +177,7 @@ mod tests {
                 )])
             );
             assert_eq!(
-                size_map,
+                quadimg.sizes,
                 HashMap::from([(0, Vec2 { x: 64, y: 64 }), (1, Vec2 { x: 32, y: 32 })])
             )
         }
