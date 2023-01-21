@@ -1,26 +1,32 @@
-mod drawing;
 mod args;
+mod drawing;
 mod quad;
 mod utils;
 
-use crate::drawing::*;
 use crate::args::*;
+use crate::drawing::*;
 use crate::quad::*;
 use clap::Parser;
+use image::{codecs::*, *};
+use std::path::PathBuf;
 use std::{fs::File, path::Path};
 
-use image::{codecs::*, *};
-
 fn main() {
+    if atty::isnt(atty::Stream::Stdin) {
+        //TODO complete
+        // getting piped in `ls | quadtree-over-media`
+        println!("I'M GETTING PIPED IN")
+    }
+
+    //TODO decide how the hell is this gonna be parsed when piped
     let args = QuadArgs::parse();
-    //TODO implement video support
-    _main_image(&args)
+    do_single_image(&args)
 }
 
-fn _main_image(args: &QuadArgs) {
+fn do_single_image(args: &QuadArgs) {
     let img = load_image(&args.input);
     let keepcolors = args.no_drawover || args.fill || args.fill_with.is_some();
-    println!("will keep averages");
+    println!("calculating...");
     let (quadmap, sizemap) = calc_quads(
         &img,
         &args.min_quad_size,
@@ -42,13 +48,13 @@ fn _main_image(args: &QuadArgs) {
     } else {
         draw_quads_on(&img, &quadmap, &sizemap, &args.color)
     };
-    println!("saving image to {}", args.output);
+    println!("saving image to {}", args.output.to_str().unwrap());
     save(&out, args).expect("error while saving image");
     println!("... done!")
 }
 
-pub fn load_image(source: &String) -> DynamicImage {
-    println!("loading {}", source);
+pub fn load_image(source: &PathBuf) -> DynamicImage {
+    println!("loading {}", source.to_str().unwrap());
     match image::io::Reader::open(&source)
         .expect("error while opening image")
         .with_guessed_format()
@@ -69,9 +75,9 @@ pub fn save(img: &DynamicImage, args: &QuadArgs) -> Result<(), ImageError> {
         ImageFormat::Png => png::PngEncoder::new_with_quality(
             stream(path),
             match args.output_quality {
-                ImgOpt::Default => png::CompressionType::Default,
-                ImgOpt::Min => png::CompressionType::Fast,
-                ImgOpt::Max => png::CompressionType::Best,
+                ImgQuality::Default => png::CompressionType::Default,
+                ImgQuality::Min => png::CompressionType::Fast,
+                ImgQuality::Max => png::CompressionType::Best,
             },
             png::FilterType::Adaptive,
         )
@@ -84,9 +90,9 @@ pub fn save(img: &DynamicImage, args: &QuadArgs) -> Result<(), ImageError> {
         ImageFormat::Jpeg => jpeg::JpegEncoder::new_with_quality(
             stream(path),
             match args.output_quality {
-                ImgOpt::Default => 70,
-                ImgOpt::Min => 30,
-                ImgOpt::Max => 100,
+                ImgQuality::Default => 70,
+                ImgQuality::Min => 30,
+                ImgQuality::Max => 100,
             },
         )
         .write_image(
