@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::utils::*;
 use image::*;
+use log::trace;
 use rayon::prelude::*;
 
 pub(super) const DEFAULT_MIN_DEPTH: u8 = 4;
@@ -15,9 +16,17 @@ pub fn calc_quads(
     min_depth: u8,
     treshold: &Rgba<u8>,
     do_calc_color: bool,
-) -> (HashMap<Vec2, QuadInfo>, HashMap<u8, Vec2>) {
+) -> QuadStructure {
+    trace!(
+        "will {} keeping color averages",
+        match do_calc_color {
+            true => "be",
+            false => "not be",
+        }
+    );
+    
     let max_depth = ((img.width() * img.height()) as f64).log2() as u8 / 2;
-    println!("Max iterations: {max_depth}");
+    trace!("Max iterations: {max_depth}");
 
     let mut quadinf_map: HashMap<Vec2, QuadInfo> = HashMap::new();
     let mut depthsize_map: HashMap<u8, Vec2> = HashMap::new();
@@ -34,12 +43,12 @@ pub fn calc_quads(
         let h = curr_size.half();
         curr_size = h.0;
         if &curr_size < min_quad_size {
-            println!("reached minimum possible quad size!");
+            trace!("reached minimum possible quad size!");
             break;
         }
         depthsize_map.insert(curr_depth, curr_size);
 
-        println!("Iteration: {}, size {}, mod {}", curr_depth, curr_size, h.1);
+        trace!("Iteration: {}, size {}, mod {}", curr_depth, curr_size, h.1);
 
         quadinf_out = Vec::from_par_iter(
             quadpos_in
@@ -90,7 +99,10 @@ pub fn calc_quads(
             },
         );
     }
-    (quadinf_map, depthsize_map)
+    QuadStructure {
+        quads: quadinf_map,
+        sizes: depthsize_map,
+    }
 }
 
 // create subnodes of the specified size for a given pos and with the given modulo in between
@@ -160,10 +172,9 @@ mod tests {
         #[test]
         fn gens_only_one_quad() {
             let img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(64, 64, BLACK));
-            let (info_map, size_map) =
-                calc_quads(&img, &DEFAULT_MIN_SIZE, 0, &Rgba::<u8>([0, 0, 0, 0]), true);
+            let quadimg = calc_quads(&img, &DEFAULT_MIN_SIZE, 0, &Rgba::<u8>([0, 0, 0, 0]), true);
             assert_eq!(
-                info_map,
+                quadimg.quads,
                 HashMap::from([(
                     Vec2::ZERO,
                     QuadInfo {
@@ -173,7 +184,7 @@ mod tests {
                 )])
             );
             assert_eq!(
-                size_map,
+                quadimg.sizes,
                 HashMap::from([(0, Vec2 { x: 64, y: 64 }), (1, Vec2 { x: 32, y: 32 })])
             )
         }

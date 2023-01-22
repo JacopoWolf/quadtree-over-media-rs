@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, hash::Hash};
+use std::{cmp::Ordering, hash::Hash, collections::HashMap};
 
 use image::Rgba;
 
@@ -12,6 +12,11 @@ pub struct Vec2 {
 pub struct QuadInfo {
     pub depth: u8,
     pub color: Option<Rgba<u8>>,
+}
+
+pub struct QuadStructure {
+    pub quads: HashMap<Vec2, QuadInfo>,
+    pub sizes: HashMap<u8, Vec2>,
 }
 
 impl Vec2 {
@@ -30,8 +35,8 @@ impl Vec2 {
         )
     }
 }
-impl From<(u32,u32)> for Vec2 {
-    fn from(src: (u32,u32)) -> Self {
+impl From<(u32, u32)> for Vec2 {
+    fn from(src: (u32, u32)) -> Self {
         Vec2 { x: src.0, y: src.1 }
     }
 }

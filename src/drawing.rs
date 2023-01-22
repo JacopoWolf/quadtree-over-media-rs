@@ -7,17 +7,16 @@ use image::*;
 /// create a copy of the original and draw quads outlines on it
 pub fn draw_quads_on(
     original: &DynamicImage,
-    quadinf_map: &HashMap<Vec2, QuadInfo>,
-    depth_sizeinf_map: &HashMap<u8, Vec2>,
+    quads: &QuadStructure,
     color: &Option<Rgba<u8>>,
 ) -> DynamicImage {
     let mut copy = original.clone();
 
-    for (pos, info) in quadinf_map.iter() {
+    for (pos, info) in quads.quads.iter() {
         draw_square(
             &mut copy,
             pos,
-            depth_sizeinf_map.get(&info.depth).unwrap(),
+            quads.sizes.get(&info.depth).unwrap(),
             &color.unwrap_or(info.color.unwrap_or(DEFAULT_COLOR)),
             &None,
         );
@@ -27,22 +26,21 @@ pub fn draw_quads_on(
 
 /// Draws quads based on the specified image and with the given args only if the color satisfies the filter
 pub fn draw_quads(
-    quadinf_map: &HashMap<Vec2, QuadInfo>,
-    depthsize_map: &HashMap<u8, Vec2>,
+    structure: &QuadStructure,
     border_color: &Option<Rgba<u8>>,
     background_color: &Option<Rgba<u8>>,
     multiply: bool,
     quad_img: &Option<DynamicImage>,
     draw_range: &Option<[Rgba<u8>; 2]>,
 ) -> DynamicImage {
-    let img_size = depthsize_map.get(&0).unwrap();
+    let img_size = structure.sizes.get(&0).unwrap();
 
     let mut scaledimage_cache: HashMap<Vec2, DynamicImage> = HashMap::new();
     let mut img_out = DynamicImage::ImageRgba8(match background_color {
         Some(bgrc) => RgbaImage::from_pixel(img_size.x, img_size.y, *bgrc),
-        None => RgbaImage::new(img_size.x, img_size.y),
+        None => RgbaImage::new(img_size.x, img_size.y), //transparent bg
     });
-    for (pos, info) in quadinf_map.iter() {
+    for (pos, info) in structure.quads.iter() {
         if draw_range.is_some()
             && !is_color_between(
                 &info.color,
@@ -55,8 +53,8 @@ pub fn draw_quads(
 
         let size_adj = adjust_quad_size(
             pos,
-            depthsize_map.get(&info.depth).unwrap(),
-            quadinf_map,
+            structure.sizes.get(&info.depth).unwrap(),
+            &structure.quads,
             img_size,
         );
 
