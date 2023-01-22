@@ -39,7 +39,7 @@ fn main() {
             info!("... done!")
         }
         // pipe, loop std::in
-        None => todo!(),
+        None => todo!(), //TODO
     }
 }
 
@@ -98,7 +98,7 @@ fn output_image(img: &DynamicImage, io: &IOArgs) {
             }
         }
         // pipe output
-        None => todo!(),
+        None => todo!(), //TODO
     }
 }
 

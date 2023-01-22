@@ -31,7 +31,6 @@ pub(super) struct QomCli {
     pub verbose: u8,
 }
 
-//TODO add custom parser for piping
 #[derive(Args)]
 #[command(group(ArgGroup::new(ARG_GRP_IN).required(true)))]
 #[command(group(ArgGroup::new(ARG_GRP_OUT).required(true)))]
@@ -40,17 +39,19 @@ pub(super) struct IOArgs {
     #[arg(long, short, value_parser, value_name = VALUE_NAME_IMAGE, group = ARG_GRP_IN)]
     pub input: Option<PathBuf>,
 
+    /// [PLACEHOLDER - NOT YET IMPLEMENTED]
     /// the input is coming from a pipe. must be a string in the `WxHx(colordepth)`.
     /// for example `1920x1080xRGB`
-    #[arg(long = "pipein", value_name="FORMAT DETAILS", group = ARG_GRP_IN)]
+    #[arg(long = "pipein", value_name="FORMAT DETAILS", group = ARG_GRP_IN, value_parser = parse_pipe_opts)]
     pub input_pipe: Option<String>,
 
     /// Location of output media
     #[arg(long, short, value_parser, value_name = VALUE_NAME_IMAGE, group = ARG_GRP_OUT)]
     pub output: Option<PathBuf>,
 
+    /// [PLACEHOLDER - NOT YET IMPLEMENTED]
     /// the output pipe colordepth details
-    #[arg(long = "pipeout", value_name="FORMAT DETAILS", group = ARG_GRP_OUT)]
+    #[arg(long = "pipeout", value_name="FORMAT DETAILS", group = ARG_GRP_OUT, value_parser = parse_pipe_opts)]
     pub output_pipe: Option<String>,
 
     /// Output image quality, lower quality = smaller files and vice versa.
@@ -161,6 +162,11 @@ pub(super) fn parse_vec2(s: &str) -> Result<Vec2, String> {
     } else {
         Ok(v)
     }
+}
+
+//TODO implement
+pub(super) fn parse_pipe_opts(s: &str) -> Result<(), String> {
+    Err("Piping is not yet implemented! As of now this is just a nice placeholder".to_owned())
 }
 
 #[cfg(test)]
