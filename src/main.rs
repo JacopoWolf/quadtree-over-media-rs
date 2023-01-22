@@ -60,7 +60,7 @@ fn calculate_and_draw(
 ) -> DynamicImage {
     info!("calculating...");
     let structure = calc_quads(
-        &source,
+        source,
         &calc.min_quad_size,
         calc.min_depth,
         &calc.treshold.unwrap_or(DEFAULT_TRESHOLD),
@@ -89,13 +89,13 @@ fn calculate_and_draw(
             &gen_fill_range(draw),
         )
     } else {
-        draw_quads_on(&source, &structure, &draw.color)
+        draw_quads_on(source, &structure, &draw.color)
     }
 }
 
 fn load_image(source: &PathBuf) -> ImageResult<DynamicImage> {
     info!("loading {} ...", source.to_str().unwrap());
-    image::io::Reader::open(&source)
+    image::io::Reader::open(source)
         .expect("error while opening image")
         .with_guessed_format()
         .unwrap()

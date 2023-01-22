@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::utils::*;
 use image::*;
+use log::trace;
 use rayon::prelude::*;
 
 pub(super) const DEFAULT_MIN_DEPTH: u8 = 4;
@@ -9,7 +10,6 @@ pub(super) const DEFAULT_COLOR: Rgba<u8> = Rgba([255, 20, 147, 255]); //DeepPink
 pub(super) const DEFAULT_TRESHOLD: Rgba<u8> = Rgba([8, 8, 8, 8]);
 pub(super) const DEFAULT_MIN_SIZE: Vec2 = Vec2 { x: 4, y: 4 };
 
-//TODO remove println! and substitute with logging
 pub fn calc_quads(
     img: &DynamicImage,
     min_quad_size: &Vec2,
@@ -18,7 +18,7 @@ pub fn calc_quads(
     do_calc_color: bool,
 ) -> QuadStructure {
     let max_depth = ((img.width() * img.height()) as f64).log2() as u8 / 2;
-    println!("Max iterations: {max_depth}");
+    trace!("Max iterations: {max_depth}");
 
     let mut quadinf_map: HashMap<Vec2, QuadInfo> = HashMap::new();
     let mut depthsize_map: HashMap<u8, Vec2> = HashMap::new();
@@ -35,12 +35,12 @@ pub fn calc_quads(
         let h = curr_size.half();
         curr_size = h.0;
         if &curr_size < min_quad_size {
-            println!("reached minimum possible quad size!");
+            trace!("reached minimum possible quad size!");
             break;
         }
         depthsize_map.insert(curr_depth, curr_size);
 
-        println!("Iteration: {}, size {}, mod {}", curr_depth, curr_size, h.1);
+        trace!("Iteration: {}, size {}, mod {}", curr_depth, curr_size, h.1);
 
         quadinf_out = Vec::from_par_iter(
             quadpos_in
@@ -91,9 +91,9 @@ pub fn calc_quads(
             },
         );
     }
-    QuadStructure{
+    QuadStructure {
         quads: quadinf_map,
-        sizes: depthsize_map
+        sizes: depthsize_map,
     }
 }
 
@@ -164,8 +164,7 @@ mod tests {
         #[test]
         fn gens_only_one_quad() {
             let img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(64, 64, BLACK));
-            let quadimg =
-                calc_quads(&img, &DEFAULT_MIN_SIZE, 0, &Rgba::<u8>([0, 0, 0, 0]), true);
+            let quadimg = calc_quads(&img, &DEFAULT_MIN_SIZE, 0, &Rgba::<u8>([0, 0, 0, 0]), true);
             assert_eq!(
                 quadimg.quads,
                 HashMap::from([(
