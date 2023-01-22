@@ -17,6 +17,14 @@ pub fn calc_quads(
     treshold: &Rgba<u8>,
     do_calc_color: bool,
 ) -> QuadStructure {
+    trace!(
+        "will {} keeping color averages",
+        match do_calc_color {
+            true => "be",
+            false => "not be",
+        }
+    );
+    
     let max_depth = ((img.width() * img.height()) as f64).log2() as u8 / 2;
     trace!("Max iterations: {max_depth}");
 

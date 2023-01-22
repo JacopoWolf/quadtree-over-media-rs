@@ -38,7 +38,7 @@ pub fn draw_quads(
     let mut scaledimage_cache: HashMap<Vec2, DynamicImage> = HashMap::new();
     let mut img_out = DynamicImage::ImageRgba8(match background_color {
         Some(bgrc) => RgbaImage::from_pixel(img_size.x, img_size.y, *bgrc),
-        None => RgbaImage::new(img_size.x, img_size.y),
+        None => RgbaImage::new(img_size.x, img_size.y), //transparent bg
     });
     for (pos, info) in structure.quads.iter() {
         if draw_range.is_some()

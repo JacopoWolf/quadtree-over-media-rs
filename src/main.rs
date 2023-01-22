@@ -27,15 +27,6 @@ fn main() {
     )
     .unwrap();
 
-    let keep_colors = cli.image.no_drawover || cli.image.fill || cli.image.fill_with.is_some();
-    info!(
-        "will {} keeping color averages",
-        match keep_colors {
-            true => "be",
-            false => "not be",
-        }
-    );
-
     match cli.io.input {
         // file as arg
         Some(ref path) => {
@@ -43,7 +34,7 @@ fn main() {
                 Ok(img) => img,
                 Err(error) => panic!("problem opening input file: {:?}", error),
             };
-            let img_output = calculate_and_draw(&img_in, &cli.calc, &cli.image, keep_colors);
+            let img_output = calculate_and_draw(&img_in, &cli.calc, &cli.image);
             output_image(&img_output, &cli.io);
             info!("... done!")
         }
@@ -52,24 +43,18 @@ fn main() {
     }
 }
 
-fn calculate_and_draw(
-    source: &DynamicImage,
-    calc: &QuadArgs,
-    draw: &DrawingArgs,
-    keepcolors: bool,
-) -> DynamicImage {
+fn calculate_and_draw(source: &DynamicImage, calc: &QuadArgs, draw: &DrawingArgs) -> DynamicImage {
     info!("calculating...");
     let structure = calc_quads(
         source,
         &calc.min_quad_size,
         calc.min_depth,
         &calc.treshold.unwrap_or(DEFAULT_TRESHOLD),
-        keepcolors,
+        draw.fill,
     );
     trace!("subdivided image into {} quads", structure.quads.len());
     info!("generating output image...");
-    //BUG when only color and no-drawover are specified the pixel average color is still drawn
-    if keepcolors {
+    if draw.no_drawover {
         let img_fill_with: Option<DynamicImage> = match draw.fill_with {
             Some(ref path) => {
                 trace!("loading image for fill-with");
