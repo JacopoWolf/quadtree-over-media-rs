@@ -1,6 +1,8 @@
-use std::{cmp::Ordering, hash::Hash, collections::HashMap};
+use std::{cmp::Ordering, collections::HashMap, hash::Hash};
 
 use image::Rgba;
+
+/* data structures */
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Vec2 {
@@ -18,6 +20,8 @@ pub struct QuadStructure {
     pub quads: HashMap<Vec2, QuadInfo>,
     pub sizes: HashMap<u8, Vec2>,
 }
+
+/* implementations */
 
 impl Vec2 {
     pub const ZERO: Vec2 = Vec2 { x: 0, y: 0 };

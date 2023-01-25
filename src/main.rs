@@ -23,7 +23,11 @@ fn main() {
             1 => LevelFilter::Info,
             (2..=u8::MAX) => LevelFilter::Trace,
         },
-        Config::default(),
+        ConfigBuilder::default()
+            .set_thread_level(LevelFilter::Off)
+            .set_target_level(LevelFilter::Off)
+            .set_location_level(LevelFilter::Off)
+            .build(),
     )
     .unwrap();
 

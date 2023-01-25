@@ -165,7 +165,7 @@ pub(super) fn parse_vec2(s: &str) -> Result<Vec2, String> {
 }
 
 //TODO implement
-pub(super) fn parse_pipe_opts(s: &str) -> Result<(), String> {
+pub(super) fn parse_pipe_opts(_s: &str) -> Result<(), String> {
     Err("Piping is not yet implemented! As of now this is just a nice placeholder".to_owned())
 }
 
