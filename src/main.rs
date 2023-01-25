@@ -58,7 +58,7 @@ fn calculate_and_draw(source: &DynamicImage, calc: &QuadArgs, draw: &DrawingArgs
     );
     trace!("subdivided image into {} quads", structure.quads.len());
     info!("generating output image...");
-    if draw.no_drawover {
+    if draw.no_drawover || draw.fill || draw.fill_with.is_some() {
         let img_fill_with: Option<DynamicImage> = match draw.fill_with {
             Some(ref path) => {
                 trace!("loading image for fill-with");
