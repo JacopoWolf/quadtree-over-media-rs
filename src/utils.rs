@@ -18,7 +18,7 @@ pub struct QuadInfo {
 
 pub struct QuadStructure {
     pub quads: HashMap<Vec2, QuadInfo>,
-    pub sizes: HashMap<u8, Vec2>,
+    pub sizes: Vec<Vec2>,
 }
 
 /* implementations */

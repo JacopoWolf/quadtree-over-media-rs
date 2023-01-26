@@ -16,7 +16,7 @@ pub fn draw_quads_on(
         draw_square(
             &mut copy,
             pos,
-            quads.sizes.get(&info.depth).unwrap(),
+            &quads.sizes[info.depth as usize],
             &color.unwrap_or(info.color.unwrap_or(DEFAULT_COLOR)),
             &None,
         );
@@ -33,7 +33,7 @@ pub fn draw_quads(
     quad_img: &Option<DynamicImage>,
     draw_range: &Option<[Rgba<u8>; 2]>,
 ) -> DynamicImage {
-    let img_size = structure.sizes.get(&0).unwrap();
+    let img_size = structure.sizes[0];
 
     let mut scaledimage_cache: HashMap<Vec2, DynamicImage> = HashMap::new();
     let mut img_out = DynamicImage::ImageRgba8(match background_color {
@@ -53,9 +53,9 @@ pub fn draw_quads(
 
         let size_adj = adjust_quad_size(
             pos,
-            structure.sizes.get(&info.depth).unwrap(),
+            &structure.sizes[info.depth as usize],
             &structure.quads,
-            img_size,
+            &img_size,
         );
 
         match quad_img {

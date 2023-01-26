@@ -24,15 +24,15 @@ pub fn calc_quads(
             false => "not be",
         }
     );
-    
+
     let max_depth = ((img.width() * img.height()) as f64).log2() as u8 / 2;
     trace!("Max iterations: {max_depth}");
 
     let mut quadinf_map: HashMap<Vec2, QuadInfo> = HashMap::new();
-    let mut depthsize_map: HashMap<u8, Vec2> = HashMap::new();
+    let mut depthsizes: Vec<Vec2> = vec![Vec2::ZERO; max_depth as usize];
 
     let mut curr_size = Vec2::from(img.dimensions());
-    depthsize_map.insert(0, curr_size);
+    depthsizes.insert(0, curr_size);
 
     let mut curr_depth: u8 = 1;
     let mut quadpos_in: Vec<Vec2> = vec![Vec2::ZERO];
@@ -46,7 +46,7 @@ pub fn calc_quads(
             trace!("reached minimum possible quad size!");
             break;
         }
-        depthsize_map.insert(curr_depth, curr_size);
+        depthsizes.insert(curr_depth as usize, curr_size);
 
         trace!("Iteration: {}, size {}, mod {}", curr_depth, curr_size, h.1);
 
@@ -78,6 +78,7 @@ pub fn calc_quads(
                 .flatten() // flats Option, removes None
                 .flatten(), // SelectMany
         );
+        // doing it this way avoids concurrency issues. it's still fast af.
         quadpos_in = Vec::with_capacity(quadinf_out.len());
         for (k, v) in quadinf_out {
             quadinf_map.insert(k, v);
@@ -101,7 +102,7 @@ pub fn calc_quads(
     }
     QuadStructure {
         quads: quadinf_map,
-        sizes: depthsize_map,
+        sizes: depthsizes,
     }
 }
 
@@ -185,7 +186,16 @@ mod tests {
             );
             assert_eq!(
                 quadimg.sizes,
-                HashMap::from([(0, Vec2 { x: 64, y: 64 }), (1, Vec2 { x: 32, y: 32 })])
+                vec![
+                    Vec2 { x: 64, y: 64 },
+                    Vec2 { x: 32, y: 32 },
+                    Vec2::ZERO,
+                    Vec2::ZERO,
+                    Vec2::ZERO,
+                    Vec2::ZERO,
+                    Vec2::ZERO,
+                    Vec2::ZERO
+                ]
             )
         }
     }
