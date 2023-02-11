@@ -1,0 +1,42 @@
+name: Rust CI
+
+on:
+  pull_request:
+  push:
+    paths:
+      - "*.rs"
+      - "Cargo.*"
+
+env:
+  CARGO_HASH: ${{hashFiles('Cargo.toml','Cargo.lock')}}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # SETUP
+      - uses: actions/checkout@v3
+      - name: ⚡ Cache Registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-${{ runner.os }}-${{CARGO_HASH}}
+          restore-keys: |
+            cargo-${{ runner.os }}-${{CARGO_HASH}}
+            cargo-${{ runner.os }}
+      - name: ⚡ Cache Target
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: target-${{ runner.os }}-${{CARGO_HASH}}
+          restore-keys: |
+            target-${{ runner.os }}-${{CARGO_HASH}}
+            target-${{ runner.os }}
+      # CHECKS
+      - name: 🔨 Build
+        run: cargo build
+      - name: 🔌 Test
+        run: cargo test
