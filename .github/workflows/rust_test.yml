@@ -20,19 +20,19 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: cargo-${{ runner.os }}-${{CARGO_HASH}}
+          key: cargo-${{runner.os}}-${{env.CARGO_HASH}}
           restore-keys: |
-            cargo-${{ runner.os }}-${{CARGO_HASH}}
-            cargo-${{ runner.os }}
+            cargo-${{runner.os}}-${{env.CARGO_HASH}}
+            cargo-${{runner.os}}
       - name: ⚡ Cache Target
         if: ${{ github.event_name != 'pull_request' }}
         uses: actions/cache@v3
         with:
           path: target
-          key: target-${{ runner.os }}-${{CARGO_HASH}}
+          key: target-${{runner.os}}-${{env.CARGO_HASH}}
           restore-keys: |
-            target-${{ runner.os }}-${{CARGO_HASH}}
-            target-${{ runner.os }}
+            target-${{runner.os}}-${{env.CARGO_HASH}}
+            target-${{runner.os}}
       # CHECKS
       - name: 🔨 Build
         run: cargo build
