@@ -13,12 +13,14 @@ jobs:
       # SETUP
       - uses: actions/checkout@v3
       - name: 🏭 Environment
-        run: echo "CARGO_HASH=${{hashFiles('Cargo.toml','Cargo.lock')}}" >> $GITHUB_ENV
+        run: echo "CARGO_HASH=${{hashFiles('**/Cargo.lock')}}" >> $GITHUB_ENV
       - name: ⚡ Cache Registry
         uses: actions/cache@v3
         with:
           path: |
-            ~/.cargo/registry
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
             ~/.cargo/git
           key: cargo-${{runner.os}}-${{env.CARGO_HASH}}
           restore-keys: |
@@ -28,11 +30,8 @@ jobs:
         if: ${{ github.event_name != 'pull_request' }}
         uses: actions/cache@v3
         with:
-          path: target
+          path: target/
           key: target-${{runner.os}}-${{env.CARGO_HASH}}
-          restore-keys: |
-            target-${{runner.os}}-${{env.CARGO_HASH}}
-            target-${{runner.os}}
       # CHECKS
       - name: 🔨 Build
         run: cargo build
