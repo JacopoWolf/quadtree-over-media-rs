@@ -31,20 +31,23 @@ fn main() {
     )
     .unwrap();
 
-    match cli.io.input {
-        // file as arg
-        Some(ref path) => {
-            let img_in = match load_image(path) {
-                Ok(img) => img,
-                Err(error) => panic!("problem opening input file: {:?}", error),
-            };
-            let img_output = calculate_and_draw(&img_in, &cli.calc, &cli.image);
-            output_image(&img_output, &cli.io);
-            info!("... done!")
-        }
-        // pipe, loop std::in
-        None => todo!(), //TODO
+    // load source image to process
+    let img_in = match load_image(&cli.io.input) {
+        Ok(img) => img,
+        Err(error) => panic!("problem opening input file: {:?}", error),
+    };
+
+    // process
+    let img_output = calculate_and_draw(&img_in, &cli.calc, &cli.image);
+    
+    // save processed image
+    info!("saving image to {} ...", cli.io.output.to_str().unwrap());
+    match save_image_fs(&img_output, &cli.io.output, &cli.io.output_quality) {
+        Ok(_) => {}
+        Err(error) => panic!("cannot save image: {:?}", error),
     }
+    info!("... done!")
+    
 }
 
 fn calculate_and_draw(source: &DynamicImage, calc: &QuadArgs, draw: &DrawingArgs) -> DynamicImage {
@@ -89,21 +92,6 @@ fn load_image(source: &PathBuf) -> ImageResult<DynamicImage> {
         .with_guessed_format()
         .unwrap()
         .decode()
-}
-
-fn output_image(img: &DynamicImage, io: &IOArgs) {
-    match io.output {
-        // image file
-        Some(ref path) => {
-            info!("saving image to {} ...", path.to_str().unwrap());
-            match save_image_fs(img, path, &io.output_quality) {
-                Ok(_) => {}
-                Err(error) => panic!("cannot save image: {:?}", error),
-            }
-        }
-        // pipe output
-        None => todo!(), //TODO
-    }
 }
 
 fn save_image_fs(img: &DynamicImage, path: &PathBuf, quality: &ImgQuality) -> ImageResult<()> {
