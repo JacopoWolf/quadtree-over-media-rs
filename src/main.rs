@@ -23,24 +23,30 @@ fn main() {
             1 => LevelFilter::Info,
             (2..=u8::MAX) => LevelFilter::Trace,
         },
-        Config::default(),
+        ConfigBuilder::default()
+            .set_thread_level(LevelFilter::Off)
+            .set_target_level(LevelFilter::Off)
+            .set_location_level(LevelFilter::Off)
+            .build(),
     )
     .unwrap();
 
-    match cli.io.input {
-        // file as arg
-        Some(ref path) => {
-            let img_in = match load_image(path) {
-                Ok(img) => img,
-                Err(error) => panic!("problem opening input file: {:?}", error),
-            };
-            let img_output = calculate_and_draw(&img_in, &cli.calc, &cli.image);
-            output_image(&img_output, &cli.io);
-            info!("... done!")
-        }
-        // pipe, loop std::in
-        None => todo!(), //TODO
+    // load source image to process
+    let img_in = match load_image(&cli.io.input) {
+        Ok(img) => img,
+        Err(error) => panic!("problem opening input file: {error:?}"),
+    };
+
+    // process
+    let img_output = calculate_and_draw(&img_in, &cli.calc, &cli.image);
+
+    // save processed image
+    info!("saving image to {} ...", cli.io.output.to_str().unwrap());
+    match save_image_fs(&img_output, &cli.io.output, &cli.io.output_quality) {
+        Ok(_) => {}
+        Err(error) => panic!("cannot save image: {error:?}"),
     }
+    info!("... done!")
 }
 
 fn calculate_and_draw(source: &DynamicImage, calc: &QuadArgs, draw: &DrawingArgs) -> DynamicImage {
@@ -54,13 +60,13 @@ fn calculate_and_draw(source: &DynamicImage, calc: &QuadArgs, draw: &DrawingArgs
     );
     trace!("subdivided image into {} quads", structure.quads.len());
     info!("generating output image...");
-    if draw.no_drawover {
+    if draw.no_drawover || draw.fill || draw.fill_with.is_some() {
         let img_fill_with: Option<DynamicImage> = match draw.fill_with {
             Some(ref path) => {
                 trace!("loading image for fill-with");
                 match load_image(path) {
                     Ok(img) => Some(img),
-                    Err(error) => panic!("problem opening fill-with image: {:?}", error),
+                    Err(error) => panic!("problem opening fill-with image: {error:?}"),
                 }
             }
             None => None,
@@ -85,21 +91,6 @@ fn load_image(source: &PathBuf) -> ImageResult<DynamicImage> {
         .with_guessed_format()
         .unwrap()
         .decode()
-}
-
-fn output_image(img: &DynamicImage, io: &IOArgs) {
-    match io.output {
-        // image file
-        Some(ref path) => {
-            info!("saving image to {} ...", path.to_str().unwrap());
-            match save_image_fs(img, path, &io.output_quality) {
-                Ok(_) => {}
-                Err(error) => panic!("cannot save image: {:?}", error),
-            }
-        }
-        // pipe output
-        None => todo!(), //TODO
-    }
 }
 
 fn save_image_fs(img: &DynamicImage, path: &PathBuf, quality: &ImgQuality) -> ImageResult<()> {
@@ -156,4 +147,9 @@ fn gen_fill_range(draw: &DrawingArgs) -> Option<[Rgba<u8>; 2]> {
             },
         ])
     }
+}
+
+#[cfg(test)]
+mod tests {
+    //TODO write tests
 }
