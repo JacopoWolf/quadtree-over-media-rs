@@ -41,12 +41,12 @@ fn main() {
     let img_output = calculate_and_draw(&img_in, &cli.calc, &cli.image);
 
     // save processed image
-    info!("saving image to {} ...", cli.io.output.to_str().unwrap());
+    info!("saving image to '{}' ...", cli.io.output.to_str().unwrap());
     match save_image_fs(&img_output, &cli.io.output, &cli.io.output_quality) {
         Ok(_) => {}
         Err(error) => panic!("cannot save image: {error:?}"),
     }
-    info!("... done!")
+    info!("... all done!")
 }
 
 fn calculate_and_draw(source: &DynamicImage, calc: &QuadArgs, draw: &DrawingArgs) -> DynamicImage {
@@ -63,7 +63,6 @@ fn calculate_and_draw(source: &DynamicImage, calc: &QuadArgs, draw: &DrawingArgs
     if draw.no_drawover || draw.fill || draw.fill_with.is_some() {
         let img_fill_with: Option<DynamicImage> = match draw.fill_with {
             Some(ref path) => {
-                trace!("loading image for fill-with");
                 match load_image(path) {
                     Ok(img) => Some(img),
                     Err(error) => panic!("problem opening fill-with image: {error:?}"),
@@ -85,12 +84,15 @@ fn calculate_and_draw(source: &DynamicImage, calc: &QuadArgs, draw: &DrawingArgs
 }
 
 fn load_image(source: &PathBuf) -> ImageResult<DynamicImage> {
-    info!("loading {} ...", source.to_str().unwrap());
-    image::io::Reader::open(source)
+    let strpath = source.to_str().unwrap();
+    info!("loading '{strpath}' ...", );
+    let imres = image::io::Reader::open(source)
         .expect("error while opening image")
         .with_guessed_format()
         .unwrap()
-        .decode()
+        .decode();
+    trace!("done loading '{strpath}'");
+    imres
 }
 
 fn save_image_fs(img: &DynamicImage, path: &PathBuf, quality: &ImgQuality) -> ImageResult<()> {

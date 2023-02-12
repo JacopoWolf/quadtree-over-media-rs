@@ -13,7 +13,7 @@ const ARG_GRP_OUT: &str = "output_args";
 
 /// Calculate and draw quads over images in various formats
 #[derive(Parser)]
-#[command(name = "Quadtree over Media")]
+#[command(name = "Quadtree Over Media")]
 #[command(version, about, long_about = None)]
 //
 pub(super) struct QomCli {
