@@ -205,3 +205,8 @@ fn adjust_quad_size(
         },
     }
 }
+
+#[cfg(test)]
+mod tests {
+    //TODO write tests
+}

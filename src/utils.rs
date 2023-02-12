@@ -25,6 +25,7 @@ pub struct QuadStructure {
 
 impl Vec2 {
     pub const ZERO: Vec2 = Vec2 { x: 0, y: 0 };
+
     /// returns the halfed Vec2 and the remainder for x and y
     pub fn half(&self) -> (Vec2, Vec2) {
         (
@@ -64,5 +65,24 @@ impl QuadInfo {
             depth: d,
             color: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use test_case::test_case;
+
+    #[test_case(Vec2{x:10,y:10} => (Vec2{x:5,y:5}, Vec2::ZERO); "smpl-a")]
+    #[test_case(Vec2{x:1024,y:1024} => (Vec2{x:512,y:512}, Vec2::ZERO); "smpl-b")]
+    #[test_case(Vec2{x:7,y:6} => (Vec2{x:3,y:3}, Vec2 { x: 1, y: 0 }); "mod-a")]
+    #[test_case(Vec2{x:7,y:13} => (Vec2{x:3,y:6}, Vec2 { x: 1, y: 1 }); "mod-b")]
+    fn vec2_halves(v2in: Vec2) -> (Vec2, Vec2) {
+        v2in.half()
+    }
+
+    #[test]
+    fn vec2_formats() {
+        assert_eq!(Vec2 { x: 104, y: 6 }.to_string(), "(104,6)")
     }
 }

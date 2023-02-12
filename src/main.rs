@@ -34,20 +34,19 @@ fn main() {
     // load source image to process
     let img_in = match load_image(&cli.io.input) {
         Ok(img) => img,
-        Err(error) => panic!("problem opening input file: {:?}", error),
+        Err(error) => panic!("problem opening input file: {error:?}"),
     };
 
     // process
     let img_output = calculate_and_draw(&img_in, &cli.calc, &cli.image);
-    
+
     // save processed image
     info!("saving image to {} ...", cli.io.output.to_str().unwrap());
     match save_image_fs(&img_output, &cli.io.output, &cli.io.output_quality) {
         Ok(_) => {}
-        Err(error) => panic!("cannot save image: {:?}", error),
+        Err(error) => panic!("cannot save image: {error:?}"),
     }
     info!("... done!")
-    
 }
 
 fn calculate_and_draw(source: &DynamicImage, calc: &QuadArgs, draw: &DrawingArgs) -> DynamicImage {
@@ -67,7 +66,7 @@ fn calculate_and_draw(source: &DynamicImage, calc: &QuadArgs, draw: &DrawingArgs
                 trace!("loading image for fill-with");
                 match load_image(path) {
                     Ok(img) => Some(img),
-                    Err(error) => panic!("problem opening fill-with image: {:?}", error),
+                    Err(error) => panic!("problem opening fill-with image: {error:?}"),
                 }
             }
             None => None,
@@ -148,4 +147,9 @@ fn gen_fill_range(draw: &DrawingArgs) -> Option<[Rgba<u8>; 2]> {
             },
         ])
     }
+}
+
+#[cfg(test)]
+mod tests {
+    //TODO write tests
 }

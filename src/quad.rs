@@ -10,6 +10,7 @@ pub(super) const DEFAULT_COLOR: Rgba<u8> = Rgba([255, 20, 147, 255]); //DeepPink
 pub(super) const DEFAULT_TRESHOLD: Rgba<u8> = Rgba([8, 8, 8, 8]);
 pub(super) const DEFAULT_MIN_SIZE: Vec2 = Vec2 { x: 4, y: 4 };
 
+//TODO add more tests
 pub fn calc_quads(
     img: &DynamicImage,
     min_quad_size: &Vec2,
@@ -106,6 +107,7 @@ pub fn calc_quads(
     }
 }
 
+//TODO add tests
 // create subnodes of the specified size for a given pos and with the given modulo in between
 fn generate_subnodes(pos: &Vec2, size: &Vec2, modulo: &Vec2, depth: u8) -> [(Vec2, QuadInfo); 4] {
     [
@@ -144,6 +146,7 @@ fn are_le_treshold(sub_averages: &[[u8; 4]; 4], treshold: &Rgba<u8>) -> bool {
         })
 }
 
+//TODO add tests
 /// calculates the average of each RGBA component individually
 fn average_colors(img: &DynamicImage, pos: &Vec2, size: &Vec2) -> [u8; 4] {
     let section = img.view(pos.x, pos.y, size.x, size.y);
@@ -167,9 +170,13 @@ fn average_colors(img: &DynamicImage, pos: &Vec2, size: &Vec2) -> [u8; 4] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    pub use test_case::test_case;
+
     const BLACK: Rgba<u8> = Rgba::<u8>([0, 0, 0, 0]);
+
     mod quads {
         use super::*;
+
         #[test]
         fn gens_only_one_quad() {
             let img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(64, 64, BLACK));
@@ -199,8 +206,10 @@ mod tests {
             )
         }
     }
+
     mod color_calc {
-        use super::*;
+        use super::{test_case, *};
+
         const TEST_AVERAGES_SIMPLE: [[u8; 4]; 4] = [
             [064, 064, 064, 064],
             [100, 100, 100, 100],
@@ -213,33 +222,14 @@ mod tests {
             [0, 0, 0, 100],
             [0, 0, 0, 128],
         ];
-        #[test]
-        fn averages_are_equal_treshold() {
-            assert_eq!(
-                are_le_treshold(&TEST_AVERAGES_SIMPLE, &Rgba([96, 96, 96, 96])),
-                true
-            );
-        }
-        #[test]
-        fn averages_are_under_treshold() {
-            assert_eq!(
-                are_le_treshold(&TEST_AVERAGES_SIMPLE, &Rgba([10, 10, 10, 10])),
-                false
-            )
-        }
-        #[test]
-        fn alpha_is_under_treshold() {
-            assert_eq!(
-                are_le_treshold(&TEST_AVERAGES_APHAONLY, &Rgba([255, 255, 255, 96])),
-                true
-            )
-        }
-        #[test]
-        fn alpha_is_not_under_treshold() {
-            assert_eq!(
-                are_le_treshold(&TEST_AVERAGES_APHAONLY, &Rgba([255, 255, 255, 97])),
-                true
-            )
+
+        #[test_case(TEST_AVERAGES_SIMPLE, Rgba([96, 96, 96, 96]) => true; "avg-le")]
+        #[test_case(TEST_AVERAGES_SIMPLE, Rgba([10, 10, 10, 10]) => false; "avg-gt")]
+        #[test_case(TEST_AVERAGES_APHAONLY, Rgba([255, 255, 255, 65]) => true; "alpha-lt")]
+        #[test_case(TEST_AVERAGES_APHAONLY, Rgba([255, 255, 255, 64]) => true; "alpha-eq")]
+        #[test_case(TEST_AVERAGES_APHAONLY, Rgba([255, 255, 255, 63]) => false; "alpha-gt")]
+        fn treshold(matrix: [[u8; 4]; 4], treshold: Rgba<u8>) -> bool {
+            are_le_treshold(&matrix, &treshold)
         }
     }
 }
