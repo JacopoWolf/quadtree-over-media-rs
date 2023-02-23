@@ -107,7 +107,6 @@ pub fn calc_quads(
     }
 }
 
-//TODO add tests
 // create subnodes of the specified size for a given pos and with the given modulo in between
 fn generate_subnodes(pos: &Vec2, size: &Vec2, modulo: &Vec2, depth: u8) -> [(Vec2, QuadInfo); 4] {
     [
@@ -146,7 +145,6 @@ fn are_le_treshold(sub_averages: &[[u8; 4]; 4], treshold: &Rgba<u8>) -> bool {
         })
 }
 
-//TODO add tests
 /// calculates the average of each RGBA component individually
 fn average_colors(img: &DynamicImage, pos: &Vec2, size: &Vec2) -> [u8; 4] {
     let section = img.view(pos.x, pos.y, size.x, size.y);
@@ -174,9 +172,10 @@ mod tests {
 
     const BLACK: Rgba<u8> = Rgba::<u8>([0, 0, 0, 0]);
 
-    mod quads {
-        use super::*;
+    mod calcs {
+        use super::{test_case, *};
 
+        //TODO rewrite
         #[test]
         fn gens_only_one_quad() {
             let img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(64, 64, BLACK));
@@ -205,10 +204,24 @@ mod tests {
                 ]
             )
         }
+
+        #[test_case(Vec2{x:0,y:0},Vec2{x:2,y:2},Vec2::ZERO,1 => vec![Vec2{x:0,y:0},Vec2{x:2,y:0},Vec2{x:0,y:2},Vec2{x:2,y:2}]; "even")]
+        #[test_case(Vec2{x:0,y:0},Vec2{x:2,y:2},Vec2{x:0,y:1},2 => vec![Vec2{x:0,y:0},Vec2{x:2,y:0},Vec2{x:0,y:3},Vec2{x:2,y:3}]; "even_modulo_y")]
+        #[test_case(Vec2{x:0,y:0},Vec2{x:2,y:2},Vec2{x:1,y:0},4 => vec![Vec2{x:0,y:0},Vec2{x:3,y:0},Vec2{x:0,y:2},Vec2{x:3,y:2}]; "even_modulo_x")]
+        #[test_case(Vec2{x:0,y:0},Vec2{x:7,y:7},Vec2{x:0,y:0},3 => vec![Vec2{x:0,y:0},Vec2{x:7,y:0},Vec2{x:0,y:7},Vec2{x:7,y:7}]; "odd")]
+        #[test_case(Vec2{x:16,y:15},Vec2{x:3,y:4},Vec2{x:0,y:0},9 => vec![Vec2{x:16,y:15},Vec2{x:19,y:15},Vec2{x:16,y:19},Vec2{x:19,y:19}]; "uneven_from_pos")]
+        fn generates_subnodes(pos: Vec2, size: Vec2, modulo: Vec2, depth: u8) -> Vec<Vec2> {
+            let subnodes = generate_subnodes(&pos, &size, &modulo, depth);
+            assert!(subnodes
+                .iter()
+                .all(|vq| { vq.1.depth == depth && vq.1.color == None }));
+            return subnodes.iter().map(|vq| vq.0).collect();
+        }
     }
 
-    mod color_calc {
+    mod colors {
         use super::{test_case, *};
+        use once_cell::sync::Lazy;
 
         const TEST_AVERAGES_SIMPLE: [[u8; 4]; 4] = [
             [064, 064, 064, 064],
@@ -230,6 +243,34 @@ mod tests {
         #[test_case(TEST_AVERAGES_APHAONLY, Rgba([255, 255, 255, 63]) => false; "alpha-gt")]
         fn treshold(matrix: [[u8; 4]; 4], treshold: Rgba<u8>) -> bool {
             are_le_treshold(&matrix, &treshold)
+        }
+
+        /*  creates an image split in half diagonally in black and white with a gray line in between
+         *  0,0|\   |
+         *     |#\  |
+         *     |##\ |
+         *     |###\|64,64
+         */
+        static TEST_IMAGE: Lazy<DynamicImage> = Lazy::new(|| {
+            DynamicImage::ImageRgba8(RgbaImage::from_fn(64, 64, |x, y| -> Rgba<u8> {
+                match x.cmp(&y) {
+                    std::cmp::Ordering::Equal => Rgba([128, 128, 128, 128]),
+                    std::cmp::Ordering::Less => Rgba([0, 0, 0, 0]),
+                    std::cmp::Ordering::Greater => Rgba([255, 255, 255, 255]),
+                }
+            }))
+        });
+
+        #[test_case(Vec2{x:32,y:0}, Vec2{x:32,y:32} => [255, 255, 255, 255]; "all white")]
+        #[test_case(Vec2{x:0,y:32}, Vec2{x:32,y:32} => [0, 0, 0, 0]; "all black")]
+        #[test_case(Vec2{x:0,y:0}, Vec2{x:32,y:32} => [127, 127, 127, 127]; "grey tl")]
+        #[test_case(Vec2{x:32,y:32}, Vec2{x:32,y:32} => [127, 127, 127, 127]; "grey br")]
+        #[test_case(Vec2{x:0,y:0}, Vec2{x:64,y:64} => [127, 127, 127, 127]; "gray whole")]
+        #[test_case(Vec2::ZERO, Vec2::ZERO => panics "attempt to divide by zero"; "zero")]
+        #[test_case(Vec2::ZERO, Vec2{x:256,y:512} => panics "width as u64 <= self.width()"; "size too large")]
+        #[test_case(Vec2{x:500,y:500}, Vec2::ZERO => panics "width as u64 <= self.width()"; "out of bounds")]
+        fn averages_colors(rectp: Vec2, rects: Vec2) -> [u8; 4] {
+            average_colors(&TEST_IMAGE, &rectp, &rects)
         }
     }
 }
