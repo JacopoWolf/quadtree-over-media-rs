@@ -1,3 +1,17 @@
+/* Copyright 2023 Comparin Jacopo
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 mod args;
 mod drawing;
 mod quad;
@@ -62,12 +76,10 @@ fn calculate_and_draw(source: &DynamicImage, calc: &QuadArgs, draw: &DrawingArgs
     info!("generating output image...");
     if draw.no_drawover || draw.fill || draw.fill_with.is_some() {
         let img_fill_with: Option<DynamicImage> = match draw.fill_with {
-            Some(ref path) => {
-                match load_image(path) {
-                    Ok(img) => Some(img),
-                    Err(error) => panic!("problem opening fill-with image: {error:?}"),
-                }
-            }
+            Some(ref path) => match load_image(path) {
+                Ok(img) => Some(img),
+                Err(error) => panic!("problem opening fill-with image: {error:?}"),
+            },
             None => None,
         };
         draw_quads(
@@ -85,7 +97,7 @@ fn calculate_and_draw(source: &DynamicImage, calc: &QuadArgs, draw: &DrawingArgs
 
 fn load_image(source: &PathBuf) -> ImageResult<DynamicImage> {
     let strpath = source.to_str().unwrap();
-    info!("loading '{strpath}' ...", );
+    info!("loading '{strpath}' ...",);
     let imres = image::io::Reader::open(source)
         .expect("error while opening image")
         .with_guessed_format()

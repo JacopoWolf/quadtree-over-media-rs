@@ -5,12 +5,10 @@ version = "1.0.0-rc.1"
 description = """
 draw quads over images, using other images
 """
-#categories = 
-#homepage = 
 #documentation =
-keywords = ["quad", "quadtree"]
-license = "MIT"
+license = "Apache-2.0"
 repository = "https://github.com/JacopoWolf/quadtree-over-media-rs/"
+keywords = ["quad", "quadtree" ]
 exclude = [
 	"docs/"
 ]
