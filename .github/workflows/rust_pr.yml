@@ -1,0 +1,29 @@
+name: Rust PR
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "**.rs"
+      - "Cargo.*"
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # SETUP
+      - uses: actions/checkout@v3
+      - name: ⚡ Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git
+          key: cargo-${{runner.os}}-pr
+      # CHECKS
+      - name: 🔨 Build
+        run: cargo build --release --all-features
+      - name: 📎 Clippy
+        run: cargo clippy --release --all-features
+      - name: 🔌 Test
+        run: cargo test --release --all-features

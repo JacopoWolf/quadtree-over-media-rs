@@ -1,15 +1,12 @@
 name: Rust CI
 on:
-  #workflow_dispatch:
-  pull_request:
-    paths:
-      - "**.rs"
-      - "Cargo.*"
   push:
     paths:
       - "**.rs"
       - "Cargo.*"
       - ".github/workflows/"
+    tags-ignore:
+      - "**"
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -20,7 +17,6 @@ jobs:
         run: |
           echo "CARGO_HASH=${{hashFiles('**/Cargo.lock')}}" >> $GITHUB_ENV
       - name: ⚡ Cache Registry
-        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/cache@v3
         with:
           path: |
@@ -33,11 +29,13 @@ jobs:
             cargo-${{runner.os}}-${{env.CARGO_HASH}}
             cargo-${{runner.os}}
       - name: ⚡ Cache Target
-        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/cache@v3
         with:
           path: target/
           key: target-${{runner.os}}-${{env.CARGO_HASH}}
+          restore-keys: |
+            target-${{runner.os}}-${{env.CARGO_HASH}}
+            target-${{runner.os}}
       # CHECKS
       - name: 🔨 Build
         run: cargo build --release
