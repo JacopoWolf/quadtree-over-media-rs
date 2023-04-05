@@ -2,11 +2,9 @@ name: Rust CI
 on:
   push:
     paths:
-      - "**.rs"
-      - "Cargo.*"
-      - ".github/workflows/"
-    tags-ignore:
-      - "**"
+      - '**.rs'
+      - 'Cargo.*'
+      - '.github/workflows/**'
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -16,26 +14,18 @@ jobs:
       - name: 🏭 Environment
         run: |
           echo "CARGO_HASH=${{hashFiles('**/Cargo.lock')}}" >> $GITHUB_ENV
-      - name: ⚡ Cache Registry
+      - name: ⚡ Cache
         uses: actions/cache@v3
         with:
           path: |
-            ~/.cargo/bin/
+            target/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git
-          key: cargo-${{runner.os}}-${{env.CARGO_HASH}}
+          key: ci-${{runner.os}}-${{env.CARGO_HASH}}
           restore-keys: |
-            cargo-${{runner.os}}-${{env.CARGO_HASH}}
-            cargo-${{runner.os}}
-      - name: ⚡ Cache Target
-        uses: actions/cache@v3
-        with:
-          path: target/
-          key: target-${{runner.os}}-${{env.CARGO_HASH}}
-          restore-keys: |
-            target-${{runner.os}}-${{env.CARGO_HASH}}
-            target-${{runner.os}}
+            ci-${{runner.os}}-${{env.CARGO_HASH}}
+            ci-${{runner.os}}
       # CHECKS
       - name: 🔨 Build
         run: cargo build --release
