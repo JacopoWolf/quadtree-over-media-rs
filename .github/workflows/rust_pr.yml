@@ -19,9 +19,12 @@ jobs:
             ~/.cargo/git
           key: pr-${{runner.os}}
       # CHECKS
+      - name: 📄 Format
+        continue-on-error: true
+        run: cargo fmt --check
       - name: 🔨 Build
         run: cargo build --release --all-features
       - name: 📎 Clippy
-        run: cargo clippy --release --all-features
+        run: cargo clippy --release --all-features --no-deps
       - name: 🔌 Test
         run: cargo test --release --all-features
