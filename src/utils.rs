@@ -31,7 +31,9 @@ pub struct QuadInfo {
 }
 
 pub struct QuadStructure {
-    pub quads: HashMap<Vec2, QuadInfo>,
+    /// position : quad info
+    pub map: HashMap<Vec2, QuadInfo>,
+    /// starts with the image size and then the halved sizes based on depth
     pub sizes: Vec<Vec2>,
 }
 

@@ -125,7 +125,7 @@ pub(super) struct DrawingArgs {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
-pub enum ImgQuality {
+pub(crate) enum ImgQuality {
     /// Default image quality options
     Default,
     /// Optimize for size

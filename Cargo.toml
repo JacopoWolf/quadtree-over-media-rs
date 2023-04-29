@@ -1,7 +1,7 @@
 [package]
 edition = "2021"
 name = "quadtree-over-media"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 description = """
 draw quads over images, using other images
 """

@@ -14,19 +14,19 @@
  */
 mod args;
 mod drawing;
+mod imageio;
 mod quad;
 mod utils;
 
-use log::{info, trace};
-use simplelog::*;
-
 use crate::args::*;
-use crate::drawing::*;
+use crate::drawing::{draw_quads, draw_quads_simple, apply_background_color};
+use crate::imageio::{load_image, save_image};
 use crate::quad::*;
 use clap::Parser;
-use image::{codecs::*, *};
-use std::path::PathBuf;
-use std::{fs::File, path::Path};
+use image::*;
+use log::{info, trace};
+use simplelog::*;
+use std::collections::HashMap;
 
 fn main() {
     let cli = QomCli::parse();
@@ -48,22 +48,40 @@ fn main() {
     // load source image to process
     let img_in = match load_image(&cli.io.input) {
         Ok(img) => img,
-        Err(error) => panic!("problem opening input file: {error:?}"),
+        Err(error) => panic!("problem opening input image: {error:?}"),
+    };
+
+    // load additional image
+    let img_fill_with: Option<DynamicImage> = match cli.image.fill_with {
+        Some(ref path) => match load_image(path) {
+            Ok(img) => Some(if cli.image.background.is_some() {
+                apply_background_color(&img, cli.image.background.as_ref().unwrap())
+            } else {
+                img
+            }),
+            Err(error) => panic!("problem opening fill-with image: {error:?}"),
+        },
+        None => None,
     };
 
     // process
-    let img_output = calculate_and_draw(&img_in, &cli.calc, &cli.image);
+    let img_output = calculate_and_draw(&img_in, &img_fill_with, &cli.calc, &cli.image);
 
     // save processed image
     info!("saving image to '{}' ...", cli.io.output.to_str().unwrap());
-    match save_image_fs(&img_output, &cli.io.output, &cli.io.output_quality) {
+    match save_image(&img_output, &cli.io.output, &cli.io.output_quality) {
         Ok(_) => {}
         Err(error) => panic!("cannot save image: {error:?}"),
     }
     info!("... all done!")
 }
 
-fn calculate_and_draw(source: &DynamicImage, calc: &QuadArgs, draw: &DrawingArgs) -> DynamicImage {
+fn calculate_and_draw(
+    source: &DynamicImage,
+    img_fill_with: &Option<DynamicImage>,
+    calc: &QuadArgs,
+    draw: &DrawingArgs,
+) -> DynamicImage {
     info!("calculating...");
     let structure = calc_quads(
         source,
@@ -72,78 +90,22 @@ fn calculate_and_draw(source: &DynamicImage, calc: &QuadArgs, draw: &DrawingArgs
         &calc.treshold.unwrap_or(DEFAULT_TRESHOLD),
         draw.fill,
     );
-    trace!("subdivided image into {} quads", structure.quads.len());
+    trace!("subdivided image into {} quads", structure.map.len());
     info!("generating output image...");
     if draw.no_drawover || draw.fill || draw.fill_with.is_some() {
-        let img_fill_with: Option<DynamicImage> = match draw.fill_with {
-            Some(ref path) => match load_image(path) {
-                Ok(img) => Some(img),
-                Err(error) => panic!("problem opening fill-with image: {error:?}"),
-            },
-            None => None,
-        };
+        let mut cache = HashMap::new();
         draw_quads(
             &structure,
             &draw.color,
             &draw.background,
             draw.fill,
-            &img_fill_with,
+            img_fill_with,
             &gen_fill_range(draw),
+            &mut cache,
         )
     } else {
-        draw_quads_on(source, &structure, &draw.color)
+        draw_quads_simple(source, &structure, &draw.color)
     }
-}
-
-fn load_image(source: &PathBuf) -> ImageResult<DynamicImage> {
-    let strpath = source.to_str().unwrap();
-    info!("loading '{strpath}' ...",);
-    let imres = image::io::Reader::open(source)
-        .expect("error while opening image")
-        .with_guessed_format()
-        .unwrap()
-        .decode();
-    trace!("done loading '{strpath}'");
-    imres
-}
-
-fn save_image_fs(img: &DynamicImage, path: &PathBuf, quality: &ImgQuality) -> ImageResult<()> {
-    match ImageFormat::from_path(path).expect("output is not a supported format!") {
-        ImageFormat::Png => png::PngEncoder::new_with_quality(
-            open_stream(path),
-            match quality {
-                ImgQuality::Default => png::CompressionType::Default,
-                ImgQuality::Min => png::CompressionType::Fast,
-                ImgQuality::Max => png::CompressionType::Best,
-            },
-            png::FilterType::Adaptive,
-        )
-        .write_image(
-            &img.to_rgba8(),
-            img.width(),
-            img.height(),
-            image::ColorType::Rgba8,
-        ),
-        ImageFormat::Jpeg => jpeg::JpegEncoder::new_with_quality(
-            open_stream(path),
-            match quality {
-                ImgQuality::Default => 70,
-                ImgQuality::Min => 30,
-                ImgQuality::Max => 100,
-            },
-        )
-        .write_image(
-            &img.to_rgba8(),
-            img.width(),
-            img.height(),
-            image::ColorType::Rgba8,
-        ),
-        _ => img.save(path),
-    }
-}
-
-fn open_stream(path: &Path) -> File {
-    File::create(path).expect("cannot open output file path")
 }
 
 fn gen_fill_range(draw: &DrawingArgs) -> Option<[Rgba<u8>; 2]> {

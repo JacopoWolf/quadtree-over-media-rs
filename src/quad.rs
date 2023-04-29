@@ -43,33 +43,36 @@ pub fn calc_quads(
     let max_depth = ((img.width() * img.height()) as f64).log2() as u8 / 2;
     trace!("Max iterations: {max_depth}");
 
-    let mut quadinf_map: HashMap<Vec2, QuadInfo> = HashMap::new();
-    let mut depthsizes: Vec<Vec2> = vec![Vec2::ZERO; max_depth as usize];
-
-    let mut curr_size = Vec2::from(img.dimensions());
-    depthsizes.insert(0, curr_size);
-
+    let mut quad = QuadStructure {
+        map: HashMap::new(),
+        sizes: vec![Vec2::from(img.dimensions())],
+    };
+    let mut quadinf_in: Vec<Vec2> = vec![Vec2::ZERO];
     let mut curr_depth: u8 = 1;
-    let mut quadpos_in: Vec<Vec2> = vec![Vec2::ZERO];
-    let mut quadinf_out: Vec<(Vec2, QuadInfo)>;
 
-    while curr_depth < max_depth && !quadpos_in.is_empty() {
+    // fino a che non è finita l'immagine o
+    while curr_depth < max_depth && !quadinf_in.is_empty() {
         // halves size at each iteration
-        let h = curr_size.half();
-        curr_size = h.0;
+        let (curr_size, modulo) = quad.sizes.last().unwrap().half();
+
         if &curr_size < min_quad_size {
             trace!("reached minimum possible quad size!");
             break;
         }
-        depthsizes.insert(curr_depth as usize, curr_size);
+        quad.sizes.insert(curr_depth as usize, curr_size);
 
-        trace!("Iteration: {}, size {}, mod {}", curr_depth, curr_size, h.1);
+        trace!(
+            "Iteration: {}, size {}, mod {}",
+            curr_depth,
+            curr_size,
+            modulo
+        );
 
-        quadinf_out = Vec::from_par_iter(
-            quadpos_in
+        let quadinf_out = Vec::from_par_iter(
+            quadinf_in
                 .par_iter()
                 .map(|node| -> Option<[(Vec2, QuadInfo); 4]> {
-                    let mut subs = generate_subnodes(node, &curr_size, &h.1, curr_depth);
+                    let mut subs = generate_subnodes(node, &curr_size, &modulo, curr_depth);
                     if curr_depth > min_depth || do_calc_color {
                         let averages = [
                             average_colors(img, &subs[0].0, &curr_size),
@@ -94,16 +97,16 @@ pub fn calc_quads(
                 .flatten(), // SelectMany
         );
         // doing it this way avoids concurrency issues. it's still fast af.
-        quadpos_in = Vec::with_capacity(quadinf_out.len());
+        quadinf_in = Vec::with_capacity(quadinf_out.len());
         for (k, v) in quadinf_out {
-            quadinf_map.insert(k, v);
-            quadpos_in.push(k);
+            quad.map.insert(k, v);
+            quadinf_in.push(k)
         }
         curr_depth += 1;
     }
 
-    if do_calc_color && !quadinf_map.contains_key(&Vec2::ZERO) {
-        quadinf_map.insert(
+    if do_calc_color && !quad.map.contains_key(&Vec2::ZERO) {
+        quad.map.insert(
             Vec2::ZERO,
             QuadInfo {
                 depth: 0,
@@ -115,10 +118,7 @@ pub fn calc_quads(
             },
         );
     }
-    QuadStructure {
-        quads: quadinf_map,
-        sizes: depthsizes,
-    }
+    quad
 }
 
 // create subnodes of the specified size for a given pos and with the given modulo in between
@@ -189,13 +189,12 @@ mod tests {
     mod calcs {
         use super::{test_case, *};
 
-        //TODO rewrite
         #[test]
         fn gens_only_one_quad() {
             let img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(64, 64, BLACK));
             let quadimg = calc_quads(&img, &DEFAULT_MIN_SIZE, 0, &Rgba::<u8>([0, 0, 0, 0]), true);
             assert_eq!(
-                quadimg.quads,
+                quadimg.map,
                 HashMap::from([(
                     Vec2::ZERO,
                     QuadInfo {
@@ -206,16 +205,7 @@ mod tests {
             );
             assert_eq!(
                 quadimg.sizes,
-                vec![
-                    Vec2 { x: 64, y: 64 },
-                    Vec2 { x: 32, y: 32 },
-                    Vec2::ZERO,
-                    Vec2::ZERO,
-                    Vec2::ZERO,
-                    Vec2::ZERO,
-                    Vec2::ZERO,
-                    Vec2::ZERO
-                ]
+                vec![Vec2 { x: 64, y: 64 }, Vec2 { x: 32, y: 32 }]
             )
         }
 
@@ -228,7 +218,7 @@ mod tests {
             let subnodes = generate_subnodes(&pos, &size, &modulo, depth);
             assert!(subnodes
                 .iter()
-                .all(|vq| { vq.1.depth == depth && vq.1.color == None }));
+                .all(|vq| { vq.1.depth == depth && vq.1.color.is_none() }));
             return subnodes.iter().map(|vq| vq.0).collect();
         }
     }

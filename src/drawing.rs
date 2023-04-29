@@ -19,23 +19,23 @@ use crate::utils::*;
 use image::*;
 
 /// create a copy of the original and draw quads outlines on it
-pub fn draw_quads_on(
+pub fn draw_quads_simple(
     original: &DynamicImage,
     quads: &QuadStructure,
     color: &Option<Rgba<u8>>,
 ) -> DynamicImage {
-    let mut copy = original.clone();
+    let mut copy_img = original.clone();
 
-    for (pos, info) in quads.quads.iter() {
+    for (pos, info) in quads.map.iter() {
         draw_square(
-            &mut copy,
+            &mut copy_img,
             pos,
             &quads.sizes[info.depth as usize],
             &color.unwrap_or(info.color.unwrap_or(DEFAULT_COLOR)),
             &None,
         );
     }
-    copy
+    copy_img
 }
 
 /// Draws quads based on the specified image and with the given args only if the color satisfies the filter
@@ -46,15 +46,15 @@ pub fn draw_quads(
     multiply: bool,
     quad_img: &Option<DynamicImage>,
     draw_range: &Option<[Rgba<u8>; 2]>,
+    cache: &mut HashMap<Vec2, DynamicImage>,
 ) -> DynamicImage {
     let img_size = structure.sizes[0];
 
-    let mut scaledimage_cache: HashMap<Vec2, DynamicImage> = HashMap::new();
     let mut img_out = DynamicImage::ImageRgba8(match background_color {
         Some(bgrc) => RgbaImage::from_pixel(img_size.x, img_size.y, *bgrc),
         None => RgbaImage::new(img_size.x, img_size.y), //transparent bg
     });
-    for (pos, info) in structure.quads.iter() {
+    for (pos, info) in structure.map.iter() {
         if draw_range.is_some()
             && !is_color_between(
                 &info.color,
@@ -68,7 +68,7 @@ pub fn draw_quads(
         let size_adj = adjust_quad_size(
             pos,
             &structure.sizes[info.depth as usize],
-            &structure.quads,
+            &structure.map,
             &img_size,
         );
 
@@ -83,7 +83,7 @@ pub fn draw_quads(
                     true => &info.color,
                     false => &None,
                 },
-                &mut scaledimage_cache,
+                cache,
             ),
             None => {
                 draw_square(
@@ -155,7 +155,7 @@ fn draw_image(
     }
 }
 
-pub(crate) fn is_color_between(color: &Option<Rgba<u8>>, from: &Rgba<u8>, to: &Rgba<u8>) -> bool {
+fn is_color_between(color: &Option<Rgba<u8>>, from: &Rgba<u8>, to: &Rgba<u8>) -> bool {
     match color {
         Some(color) => (0..4).all(|i| color[i] >= from[i] && color[i] <= to[i]),
         None => false,
@@ -164,7 +164,7 @@ pub(crate) fn is_color_between(color: &Option<Rgba<u8>>, from: &Rgba<u8>, to: &R
 
 fn multiply_image_by(src: &DynamicImage, by: &Rgba<u8>) -> DynamicImage {
     DynamicImage::ImageRgba8(
-        RgbaImage::from_vec(
+        RgbaImage::from_raw(
             src.width(),
             src.height(),
             src.pixels()
@@ -174,12 +174,30 @@ fn multiply_image_by(src: &DynamicImage, by: &Rgba<u8>) -> DynamicImage {
         .unwrap(),
     )
 }
+
+pub(super) fn apply_background_color(src: &DynamicImage, color: &Rgba<u8>) -> DynamicImage {
+    DynamicImage::ImageRgba8(
+        RgbaImage::from_raw(
+            src.width(),
+            src.height(),
+            src.pixels()
+                .flat_map(|(_, _, p)| match p[3] {
+                    255 => p.0,
+                    0 => color.0,
+                    _ => multiply_pixels(&p, color),
+                })
+                .collect(),
+        )
+        .unwrap(),
+    )
+}
+
 fn multiply_pixels(a: &Rgba<u8>, b: &Rgba<u8>) -> [u8; 4] {
     [
         ((a[0] as u16) * (b[0] as u16) / 255) as u8,
         ((a[1] as u16) * (b[1] as u16) / 255) as u8,
         ((a[2] as u16) * (b[2] as u16) / 255) as u8,
-        a[3],
+        ((a[3] as u16) * (b[3] as u16) / 255) as u8,
     ]
 }
 
