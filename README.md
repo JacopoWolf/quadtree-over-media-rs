@@ -19,27 +19,27 @@ demonstration video](https://youtu.be/G434WPz8MRk)
 
 Everything is completely customizable, from rgba tresholds to subdivide the quads to how to draw the quads.
 
+## Installation
+For the latest tag check the release page
 
-### Examples
+`cargo install --git https://github.com/JacopoWolf/quadtree-over-media-rs.git --tag v1.0.0`
 
-Examples use this CC image from wikipedia https://commons.wikimedia.org/wiki/File:Rainbow_in_Budapest.jpg
+_NOTE: I don't suggest installing directly from the base branch (by not specifying a tag) because I'm lazy and develop directly in main_
+
+## Examples
 
 Below examples all add parameters to this base command:
 
 `quadtree-over-media -i Rainbow_in_Budapest.jpg -o rainbow-something.jpg`
 
+|                                                     |                                                |                                                         |
+| :-------------------------------------------------: | :--------------------------------------------: | :-----------------------------------------------------: |
+|                 __`--color black`__                 |       __`--color blue --treshold FF0`__        |                      __`--fill`__                       |
+|  <img src="docs/rainbow-simple.jpg" width="300" >   | <img src="docs/rainbow-blue.jpg" width="300" > |     <img src="docs/rainbow-fill.jpg" width="300" >      |
+|              __`--fill-with dog.jpg`__              |        __`--fill --fill-with dog.jpg`__        | __`--fill --fill-with dog.jpg` <br/> `--treshold 000`__ |
+| <img src="docs/rainbow-dog-nofill.jpg" width="300"> |  <img src="docs/rainbow-dog.jpg" width="300">  |    <img src="docs/rainbow-dog-t000.jpg" width="300">    |
 
-* <code>--fill</code><br>
-<img src="docs/rainbow-fill.jpg" width="400">
-
-* <code>--fill-with dog-whitebg.jpg</code><br>
-<img src="docs/rainbow-dog-nofill.jpg" width="400">
-
-* <code>--fill --fill-with dog-whitebg.jpg</code><br>
-<img src="docs/rainbow-dog.jpg" width="400">
-
-* <code>--fill --fill-with dog-whitebg.jpg --treshold 000</code><br>
-<img src="docs/rainbow-dog-t000.jpg" width="400">
+> CC image from Wikipedia https://commons.wikimedia.org/wiki/File:Rainbow_in_Budapest.jpg
 
 
 ### Inspired by
