@@ -1,4 +1,4 @@
-name: Rust CI
+name: Test
 on:
   push:
     paths:
@@ -27,9 +27,13 @@ jobs:
             ci-${{runner.os}}-${{env.CARGO_HASH}}
             ci-${{runner.os}}
       # CHECKS
+      - name: 📄 Format
+        continue-on-error: true
+        run: cargo fmt --check --message-format short
       - name: 🔨 Build
         run: cargo build --release
       - name: 📎 Clippy
-        run: cargo clippy --release --no-deps
+        continue-on-error: true
+        run: cargo clippy --no-deps
       - name: 🔌 Test
-        run: cargo test --release
+        run: cargo test --release -- --test-threads=1

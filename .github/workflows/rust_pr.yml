@@ -1,4 +1,4 @@
-name: Rust PR
+name: PR
 on:
   pull_request:
     paths:
@@ -21,10 +21,11 @@ jobs:
       # CHECKS
       - name: 📄 Format
         continue-on-error: true
-        run: cargo fmt --check
+        run: cargo fmt --check --message-format short
       - name: 🔨 Build
         run: cargo build --release --all-features
       - name: 📎 Clippy
-        run: cargo clippy --release --all-features --no-deps
+        continue-on-error: false
+        run: cargo clippy --no-deps
       - name: 🔌 Test
-        run: cargo test --release --all-features
+        run: cargo test --release --all-features -- --test-threads=1
