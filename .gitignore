@@ -1,5 +1,5 @@
 /target
 .vscode
 
-# test images
-imgs
+# dev test images
+/tests/img*/

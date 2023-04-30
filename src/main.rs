@@ -19,7 +19,7 @@ mod quad;
 mod utils;
 
 use crate::args::*;
-use crate::drawing::{draw_quads, draw_quads_simple, apply_background_color};
+use crate::drawing::{apply_background_color, draw_quads, draw_quads_simple};
 use crate::imageio::{load_image, save_image};
 use crate::quad::*;
 use clap::Parser;
