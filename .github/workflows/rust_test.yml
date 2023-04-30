@@ -34,6 +34,6 @@ jobs:
         run: cargo build --release
       - name: 📎 Clippy
         continue-on-error: true
-        run: cargo clippy --no-deps
+        run: cargo clippy --release --no-deps
       - name: 🔌 Test
         run: cargo test --release -- --test-threads=1
