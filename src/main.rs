@@ -108,6 +108,7 @@ fn calculate_and_draw(
     }
 }
 
+//TODO remove in 2.0
 fn gen_fill_range(draw: &DrawingArgs) -> Option<[Rgba<u8>; 2]> {
     if draw.filter_lt.is_none() && draw.filter_gt.is_none() {
         None
@@ -123,9 +124,4 @@ fn gen_fill_range(draw: &DrawingArgs) -> Option<[Rgba<u8>; 2]> {
             },
         ])
     }
-}
-
-#[cfg(test)]
-mod tests {
-    //TODO write tests
 }

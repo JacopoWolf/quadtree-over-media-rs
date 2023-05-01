@@ -106,14 +106,14 @@ pub(super) struct DrawingArgs {
     /// Fill the quads with the relative average color value
     ///
     /// Implies --no-drawover.
-    #[arg(long, value_parser)]
+    #[arg(long, short, value_parser)]
     pub fill: bool,
 
     /// Image used to fill the quads
     ///
     /// If `--fill` is also specified, it will multiply each pixel of this image
     /// by the average color of the quad
-    #[arg(long, value_parser, value_name = VALUE_NAME_IMAGE)]
+    #[arg(long, short = 'w', value_parser, value_name = VALUE_NAME_IMAGE)]
     pub fill_with: Option<PathBuf>,
 
     /// Draw the quad only if the average color is greater than this value

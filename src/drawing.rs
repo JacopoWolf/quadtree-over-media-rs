@@ -18,6 +18,7 @@ use crate::quad::*;
 use crate::utils::*;
 use image::*;
 
+//TODO unit test
 /// create a copy of the original and draw quads outlines on it
 pub fn draw_quads_simple(
     original: &DynamicImage,
@@ -38,6 +39,7 @@ pub fn draw_quads_simple(
     copy_img
 }
 
+//TODO unit test
 /// Draws quads based on the specified image and with the given args only if the color satisfies the filter
 pub fn draw_quads(
     structure: &QuadStructure,
@@ -99,7 +101,8 @@ pub fn draw_quads(
     img_out
 }
 
-// draw the square on the image
+//TODO unit test
+/// draw a square outline on the image
 fn draw_square(
     img: &mut DynamicImage,
     pos: &Vec2,
@@ -125,6 +128,8 @@ fn draw_square(
     }
 }
 
+//TODO unit test
+/// overlap an image on the specified position
 fn draw_image(
     img: &mut DynamicImage,
     img_todraw: &DynamicImage,
@@ -155,6 +160,7 @@ fn draw_image(
     }
 }
 
+//TODO remove in 2.0
 fn is_color_between(color: &Option<Rgba<u8>>, from: &Rgba<u8>, to: &Rgba<u8>) -> bool {
     match color {
         Some(color) => (0..4).all(|i| color[i] >= from[i] && color[i] <= to[i]),
@@ -240,5 +246,49 @@ fn adjust_quad_size(
 
 #[cfg(test)]
 mod tests {
-    //TODO write tests
+    use super::*;
+    use once_cell::sync::Lazy;
+    pub use test_case::test_case;
+
+    #[test_case([096,096,096,096],[096,096,096,096],[036,036,036,036];"6666x6666")]
+    #[test_case([096,096,096,096],[255,255,255,255],[096,096,096,096];"6666xFFFF")]
+    #[test_case([011,255,022,238],[255,255,255,255],[011,255,022,238];"1F2ExFFFF")]
+    #[test_case([011,255,022,238],[000,000,000,000],[000,000,000,000];"1F2Ex0000")]
+    #[test_case([011,255,022,238],[136,136,136,136],[005,136,011,126];"1F2Ex8888")]
+    fn multiplies_pixels(a: [u8; 4], b: [u8; 4], expects: [u8; 4]) {
+        assert_eq!(multiply_pixels(&Rgba(a), &Rgba(b)), expects)
+    }
+
+    /* 0,0|AB e\|  X=(2,2)
+     *    |CD f\|__ missing pixel
+     *    |gh x\|
+     *    |\\ \Z|
+     */
+    static TEST_QUADTREE: Lazy<HashMap<Vec2, QuadInfo>> = Lazy::new(|| {
+        HashMap::from([
+            (Vec2 { x: 0, y: 0 }, QuadInfo::new(1)), //A
+            (Vec2 { x: 2, y: 0 }, QuadInfo::new(1)), //B
+            (Vec2 { x: 0, y: 2 }, QuadInfo::new(1)), //C
+            (Vec2 { x: 2, y: 2 }, QuadInfo::new(1)), //D
+            (Vec2 { x: 5, y: 0 }, QuadInfo::new(1)), //e
+            (Vec2 { x: 5, y: 2 }, QuadInfo::new(1)), //f
+            (Vec2 { x: 0, y: 5 }, QuadInfo::new(1)), //g
+            (Vec2 { x: 2, y: 5 }, QuadInfo::new(1)), //h
+            (Vec2 { x: 5, y: 5 }, QuadInfo::new(1)), //x
+            (Vec2 { x: 7, y: 7 }, QuadInfo::new(1)), //Z
+        ])
+    });
+    const TEST_QUAD_SIZE: Vec2 = Vec2 { x: 2, y: 2 };
+
+    #[test_case(Vec2{x:0,y:0},TEST_QUAD_SIZE; "none-rb")]
+    #[test_case(Vec2{x:2,y:0},Vec2 { x: 3, y: 2 }; "expand-x")]
+    #[test_case(Vec2{x:0,y:2},Vec2 { x: 2, y: 3 }; "expand-y")]
+    #[test_case(Vec2{x:2,y:2},Vec2 { x: 3, y: 3 }; "expand-both")]
+    #[test_case(Vec2{x:7,y:7},TEST_QUAD_SIZE; "at-bounds")]
+    fn adjusts_size(pos: Vec2, expect_size: Vec2) {
+        assert_eq!(
+            adjust_quad_size(&pos, &TEST_QUAD_SIZE, &TEST_QUADTREE, &Vec2 { x: 9, y: 9 }),
+            expect_size
+        )
+    }
 }
