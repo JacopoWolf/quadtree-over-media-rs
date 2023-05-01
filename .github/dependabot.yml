@@ -3,18 +3,19 @@
 
 version: 2
 updates:
-  # Rust
-  - package-ecosystem: "cargo"
-    directory: "/"
+  # ---- Rust ----
+  - package-ecosystem: cargo
+    target-branch: develop
+    directory: '/'
     schedule:
-      interval: "monthly"
+      interval: monthly
     labels:
-      - "dependencies"
-  # Actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
+      - dependencies
+  # ---- Actions ----
+  - package-ecosystem: github-actions
+    target-branch: main
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: friday
+      interval: monthly
     labels:
-      - "dependencies"
+      - dependencies
