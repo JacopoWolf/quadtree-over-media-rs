@@ -47,7 +47,6 @@ pub fn draw_quads(
     background_color: &Option<Rgba<u8>>,
     multiply: bool,
     quad_img: &Option<DynamicImage>,
-    draw_range: &Option<[Rgba<u8>; 2]>,
     cache: &mut HashMap<Vec2, DynamicImage>,
 ) -> DynamicImage {
     let img_size = structure.sizes[0];
@@ -57,16 +56,6 @@ pub fn draw_quads(
         None => RgbaImage::new(img_size.x, img_size.y), //transparent bg
     });
     for (pos, info) in structure.map.iter() {
-        if draw_range.is_some()
-            && !is_color_between(
-                &info.color,
-                &draw_range.unwrap()[0],
-                &draw_range.unwrap()[1],
-            )
-        {
-            continue;
-        }
-
         let size_adj = adjust_quad_size(
             pos,
             &structure.sizes[info.depth as usize],
@@ -157,14 +146,6 @@ fn draw_image(
     match border_color {
         Some(c) => draw_square(img, pos, size, c, &None),
         None => (),
-    }
-}
-
-//TODO remove in 2.0
-fn is_color_between(color: &Option<Rgba<u8>>, from: &Rgba<u8>, to: &Rgba<u8>) -> bool {
-    match color {
-        Some(color) => (0..4).all(|i| color[i] >= from[i] && color[i] <= to[i]),
-        None => false,
     }
 }
 

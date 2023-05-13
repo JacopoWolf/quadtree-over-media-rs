@@ -24,7 +24,7 @@ use crate::imageio::{load_image, save_image};
 use crate::quad::*;
 use clap::Parser;
 use image::*;
-use log::{info, trace};
+use log::{debug, info};
 use simplelog::*;
 use std::collections::HashMap;
 
@@ -33,11 +33,14 @@ fn main() {
 
     SimpleLogger::init(
         match cli.verbose {
-            0 => LevelFilter::Off,
+            0 => LevelFilter::Error,
             1 => LevelFilter::Info,
-            (2..=u8::MAX) => LevelFilter::Trace,
+            2 => LevelFilter::Debug,
+            (3..=u8::MAX) => LevelFilter::Trace,
         },
         ConfigBuilder::default()
+            .set_time_level(LevelFilter::Off)
+            .set_level_padding(LevelPadding::Right)
             .set_thread_level(LevelFilter::Off)
             .set_target_level(LevelFilter::Off)
             .set_location_level(LevelFilter::Off)
@@ -68,7 +71,6 @@ fn main() {
     let img_output = calculate_and_draw(&img_in, &img_fill_with, &cli.calc, &cli.image);
 
     // save processed image
-    info!("saving image to '{}' ...", cli.io.output.to_str().unwrap());
     match save_image(&img_output, &cli.io.output, &cli.io.output_quality) {
         Ok(_) => {}
         Err(error) => panic!("cannot save image: {error:?}"),
@@ -90,7 +92,7 @@ fn calculate_and_draw(
         &calc.treshold.unwrap_or(DEFAULT_TRESHOLD),
         draw.fill,
     );
-    trace!("subdivided image into {} quads", structure.map.len());
+    debug!("subdivided image into {} quads", structure.map.len());
     info!("generating output image...");
     if draw.no_drawover || draw.fill || draw.fill_with.is_some() {
         let mut cache = HashMap::new();
@@ -100,28 +102,9 @@ fn calculate_and_draw(
             &draw.background,
             draw.fill,
             img_fill_with,
-            &gen_fill_range(draw),
             &mut cache,
         )
     } else {
         draw_quads_simple(source, &structure, &draw.color)
-    }
-}
-
-//TODO remove in 2.0
-fn gen_fill_range(draw: &DrawingArgs) -> Option<[Rgba<u8>; 2]> {
-    if draw.filter_lt.is_none() && draw.filter_gt.is_none() {
-        None
-    } else {
-        Some([
-            match draw.filter_lt {
-                Some(c) => c,
-                None => parse_color("0000").unwrap(),
-            },
-            match draw.filter_gt {
-                Some(c) => c,
-                None => parse_color("ffff").unwrap(),
-            },
-        ])
     }
 }

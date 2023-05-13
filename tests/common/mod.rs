@@ -13,12 +13,14 @@ pub const TMP_DIR: &str = env!("CARGO_TARGET_TMPDIR");
 
 // RESOURCES
 
-pub const RESOURCE_SQUARE: &str = "tests/square.png";
+pub const RES_SQUARE: &str = "square.png";
+pub const RES_EXP_SIMPLE: &str = "expect/simple.png";
+pub const RES_EXP_MINDEPTH: &str = "expect/mindepth.png";
 
 // FUNCTIONS
 
 pub fn resource(name: &str) -> PathBuf {
-    PathBuf::from(BASE_DIR).join(name)
+    PathBuf::from(BASE_DIR).join("tests").join(name)
 }
 
 pub fn strpath<'a>(pb: &'a PathBuf) -> &'a str {
@@ -26,6 +28,7 @@ pub fn strpath<'a>(pb: &'a PathBuf) -> &'a str {
 }
 
 pub fn run(args: Vec<&str>) -> Output {
+    println!("arguments: {args:?}");
     Command::new(BIN_PATH)
         .args(args)
         .spawn()

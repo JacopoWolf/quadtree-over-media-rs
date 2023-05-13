@@ -115,13 +115,6 @@ pub(super) struct DrawingArgs {
     /// by the average color of the quad
     #[arg(long, short = 'w', value_parser, value_name = VALUE_NAME_IMAGE)]
     pub fill_with: Option<PathBuf>,
-
-    /// Draw the quad only if the average color is greater than this value
-    #[arg(long, value_parser = parse_color, value_name = VALUE_NAME_COLOR)]
-    pub filter_gt: Option<Rgba<u8>>,
-    /// Draw the quad only if the average color is lesser than this value
-    #[arg(long, value_parser = parse_color, value_name = VALUE_NAME_COLOR)]
-    pub filter_lt: Option<Rgba<u8>>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]

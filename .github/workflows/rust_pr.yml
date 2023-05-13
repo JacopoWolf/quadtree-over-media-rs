@@ -28,4 +28,4 @@ jobs:
         continue-on-error: false
         run: cargo clippy --release --no-deps
       - name: 🔌 Test
-        run: cargo test --release --all-features -- --test-threads=1
+        run: cargo test --release --all-features -- --test-threads=1 --nocapture

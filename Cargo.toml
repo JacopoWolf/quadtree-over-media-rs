@@ -1,14 +1,14 @@
 [package]
 edition = "2021"
 name = "quadtree-over-media"
-version = "1.0.0"
+version = "2.0.0-0.1"
 description = """
 draw quads over images, using other images
 """
 #documentation =
 license = "Apache-2.0"
 repository = "https://github.com/JacopoWolf/quadtree-over-media-rs/"
-keywords = ["quad", "quadtree" ]
+keywords = ["quad", "quadtree"]
 exclude = [
 	"docs/"
 ]
@@ -16,11 +16,12 @@ exclude = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+image = "0.24.6"
+rayon = "1.7.0"
+
 clap = { version = "4.2.5", features = ["derive"] }
 csscolorparser = "0.6.2"
-image = "0.24.6"
 log = "0.4.17"
-rayon = "1.7.0"
 simplelog = "0.12.1"
 
 [dev-dependencies]
