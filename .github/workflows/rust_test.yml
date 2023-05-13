@@ -24,7 +24,6 @@ jobs:
             ~/.cargo/git
           key: ci-${{runner.os}}-${{env.CARGO_HASH}}
           restore-keys: |
-            ci-${{runner.os}}-${{env.CARGO_HASH}}
             ci-${{runner.os}}
       # CHECKS
       - name: 📄 Format
