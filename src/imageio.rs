@@ -21,7 +21,7 @@ pub(crate) fn load_image(source: &PathBuf) -> ImageResult<DynamicImage> {
 pub(crate) fn save_image(
     img: &DynamicImage,
     path: &PathBuf,
-    quality: &ImgQuality,
+    compression: &ImgCompression,
 ) -> ImageResult<()> {
     info!("saving image to '{}' ...", path.to_str().unwrap());
     match ImageFormat::from_path(path).expect("output is not a supported format!") {
@@ -29,10 +29,12 @@ pub(crate) fn save_image(
             trace!("saving as .png image");
             png::PngEncoder::new_with_quality(
                 open_stream(path),
-                match quality {
-                    ImgQuality::Default => png::CompressionType::Default,
-                    ImgQuality::Min => png::CompressionType::Fast,
-                    ImgQuality::Max => png::CompressionType::Best,
+                match compression {
+                    ImgCompression::Max => png::CompressionType::Best,
+                    ImgCompression::High => png::CompressionType::Best,
+                    ImgCompression::Default => png::CompressionType::Default,
+                    ImgCompression::Low => png::CompressionType::Fast,
+                    ImgCompression::No => png::CompressionType::Fast,
                 },
                 png::FilterType::Adaptive,
             )
@@ -47,10 +49,12 @@ pub(crate) fn save_image(
             trace!("saving as .jpeg image");
             jpeg::JpegEncoder::new_with_quality(
                 open_stream(path),
-                match quality {
-                    ImgQuality::Default => 70,
-                    ImgQuality::Min => 30,
-                    ImgQuality::Max => 100,
+                match compression {
+                    ImgCompression::Max => 10,
+                    ImgCompression::High => 40,
+                    ImgCompression::Default => 70,
+                    ImgCompression::Low => 82,
+                    ImgCompression::No => 100,
                 },
             )
             .write_image(

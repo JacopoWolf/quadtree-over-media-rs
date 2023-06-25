@@ -25,11 +25,9 @@ const VALUE_NAME_IMAGE: &str = "IMAGE";
 const ARG_GRP_IN: &str = "input_args";
 const ARG_GRP_OUT: &str = "output_args";
 
-/// Calculate and draw quads over images in various formats
 #[derive(Parser)]
 #[command(name = "Quadtree Over Media")]
 #[command(version, about, long_about = None)]
-//
 pub(super) struct QomCli {
     #[command(flatten)]
     pub io: IOArgs,
@@ -49,29 +47,36 @@ pub(super) struct QomCli {
 #[command(group(ArgGroup::new(ARG_GRP_IN).required(true)))]
 #[command(group(ArgGroup::new(ARG_GRP_OUT).required(true)))]
 pub(super) struct IOArgs {
-    /// Location of input media
+    /// Path to input media
     #[arg(long, short, value_parser, value_name = VALUE_NAME_IMAGE, group = ARG_GRP_IN)]
     pub input: PathBuf,
 
-    /// Location of output media
+    /// Path to output media
+    /// 
+    /// Suggested formats are PNG, JPEG, and BMP
     #[arg(long, short, value_parser, value_name = VALUE_NAME_IMAGE, group = ARG_GRP_OUT)]
     pub output: PathBuf,
 
-    /// Output image quality, lower quality = smaller files and vice versa.
+    /// Compression level of output image
     ///
     /// Supported only for PNG and JPEG
-    #[arg(long, value_enum, default_value_t = ImgQuality::Default)]
-    pub output_quality: ImgQuality,
+    #[arg(long, value_enum, default_value_t = ImgCompression::Default)]
+    pub compression: ImgCompression,
 }
 
 #[derive(Args)]
 pub(super) struct QuadArgs {
     /// Minimun number of iterations that will always be performed
+    /// 
+    /// Unless the minimum size is reached, always perform at least this number of iterations
+    /// even if the average color values would not have the quads split
     #[arg(long, value_parser, default_value_t = quad::DEFAULT_MIN_DEPTH)]
     pub min_depth: u8,
 
-    /// Minimum allowed size of a quad. Accepts any two number `x` `y`
-    /// separated by an ascii punctuation character, examples: `[23,12]` `{55;56}` `4-2` `007=6`
+    /// Minimum allowed size of a quad. 
+    /// 
+    /// Accepts any two number `x;y` separated by an ascii punctuation character.
+    /// e.g.: `[23,12]` `{55;56}` `4-2` `007=6`
     #[arg(long, value_parser = parse_vec2, default_value_t = quad::DEFAULT_MIN_SIZE)]
     pub min_quad_size: Vec2,
 
@@ -85,7 +90,7 @@ pub(super) struct QuadArgs {
     /// Passed as a valid CSS color.
     /// [default: rgba(10,10,10,255)]
     #[arg(long, short, value_parser = parse_color, value_name = VALUE_NAME_COLOR)]
-    pub treshold: Option<Rgba<u8>>,
+    pub threshold: Option<Rgba<u8>>,
 }
 
 #[derive(Args)]
@@ -118,13 +123,17 @@ pub(super) struct DrawingArgs {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
-pub(crate) enum ImgQuality {
-    /// Default image quality options
-    Default,
-    /// Optimize for size
-    Min,
-    /// Optimize for quality
+pub(crate) enum ImgCompression {
+    /// Maximum compression
     Max,
+    /// Optimize for size
+    High,
+    /// Default settings
+    Default,
+    /// Optimize for quality
+    Low,
+    /// No compression
+    No,
 }
 
 /// uses colorparser to parse the given color

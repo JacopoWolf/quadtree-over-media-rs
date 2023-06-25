@@ -71,7 +71,7 @@ fn main() {
     let img_output = calculate_and_draw(&img_in, &img_fill_with, &cli.calc, &cli.image);
 
     // save processed image
-    match save_image(&img_output, &cli.io.output, &cli.io.output_quality) {
+    match save_image(&img_output, &cli.io.output, &cli.io.compression) {
         Ok(_) => {}
         Err(error) => panic!("cannot save image: {error:?}"),
     }
@@ -89,7 +89,7 @@ fn calculate_and_draw(
         source,
         &calc.min_quad_size,
         calc.min_depth,
-        &calc.treshold.unwrap_or(DEFAULT_TRESHOLD),
+        &calc.threshold.unwrap_or(DEFAULT_TRESHOLD),
         draw.fill,
     );
     debug!("subdivided image into {} quads", structure.map.len());
