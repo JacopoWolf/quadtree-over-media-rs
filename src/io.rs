@@ -24,10 +24,11 @@ pub(crate) fn save_image(
     compression: &ImgCompression,
 ) -> ImageResult<()> {
     info!("saving image to '{}' ...", path.to_str().unwrap());
+
     match ImageFormat::from_path(path).expect("output is not a supported format!") {
         ImageFormat::Png => {
             trace!("saving as .png image");
-            png::PngEncoder::new_with_quality(
+            img.write_with_encoder(png::PngEncoder::new_with_quality(
                 open_stream(path),
                 match compression {
                     ImgCompression::Max => png::CompressionType::Best,
@@ -37,17 +38,11 @@ pub(crate) fn save_image(
                     ImgCompression::No => png::CompressionType::Fast,
                 },
                 png::FilterType::Adaptive,
-            )
-            .write_image(
-                &img.to_rgba8(),
-                img.width(),
-                img.height(),
-                image::ColorType::Rgba8,
-            )
+            ))
         }
         ImageFormat::Jpeg => {
             trace!("saving as .jpeg image");
-            jpeg::JpegEncoder::new_with_quality(
+            img.write_with_encoder(jpeg::JpegEncoder::new_with_quality(
                 open_stream(path),
                 match compression {
                     ImgCompression::Max => 10,
@@ -56,13 +51,7 @@ pub(crate) fn save_image(
                     ImgCompression::Low => 82,
                     ImgCompression::No => 100,
                 },
-            )
-            .write_image(
-                &img.to_rgba8(),
-                img.width(),
-                img.height(),
-                image::ColorType::Rgba8,
-            )
+            ))
         }
         _ => {
             trace!("saving as generic image");

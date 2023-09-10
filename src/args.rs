@@ -52,7 +52,7 @@ pub(super) struct IOArgs {
     pub input: PathBuf,
 
     /// Path to output media or target folder
-    /// 
+    ///
     /// Suggested formats are PNG, JPEG, and BMP
     #[arg(long, short, value_parser, value_name = VALUE_NAME_IMAGE, group = ARG_GRP_OUT)]
     pub output: PathBuf,
@@ -67,14 +67,14 @@ pub(super) struct IOArgs {
 #[derive(Args)]
 pub(super) struct QuadArgs {
     /// Minimun number of iterations that will always be performed
-    /// 
+    ///
     /// Unless the minimum size is reached, always perform at least this number of iterations
     /// even if the average color values would not have the quads split
     #[arg(long, value_parser, default_value_t = quad::DEFAULT_MIN_DEPTH)]
     pub min_depth: u8,
 
-    /// Minimum allowed size of a quad. 
-    /// 
+    /// Minimum allowed size of a quad.
+    ///
     /// Accepts any two number `x;y` separated by an ascii punctuation character.
     /// e.g.: `[23,12]` `{55;56}` `4-2` `007=6`
     #[arg(long, value_parser = parse_vec2, default_value_t = quad::DEFAULT_MIN_SIZE)]
