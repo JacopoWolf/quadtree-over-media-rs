@@ -47,11 +47,11 @@ pub(super) struct QomCli {
 #[command(group(ArgGroup::new(ARG_GRP_IN).required(true)))]
 #[command(group(ArgGroup::new(ARG_GRP_OUT).required(true)))]
 pub(super) struct IOArgs {
-    /// Path to input media
+    /// Path to input media or media folder
     #[arg(long, short, value_parser, value_name = VALUE_NAME_IMAGE, group = ARG_GRP_IN)]
     pub input: PathBuf,
 
-    /// Path to output media
+    /// Path to output media or target folder
     /// 
     /// Suggested formats are PNG, JPEG, and BMP
     #[arg(long, short, value_parser, value_name = VALUE_NAME_IMAGE, group = ARG_GRP_OUT)]
