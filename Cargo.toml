@@ -19,7 +19,7 @@ exclude = [
 image = "0.24.7"
 rayon = "1.8.0"
 
-clap = { version = "4.4.2", features = ["derive"] }
+clap = { version = "4.4.6", features = ["derive"] }
 csscolorparser = "0.6.2"
 log = "0.4.20"
 simplelog = "0.12.1"
