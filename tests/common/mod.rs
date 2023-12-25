@@ -1,8 +1,7 @@
-pub use std::path::PathBuf;
 use std::{
     fs::File,
     io::Read,
-    process::{Command, Output},
+    process::{Command, Output}, path::{Path, PathBuf},
 };
 
 // CONSTANTS
@@ -23,7 +22,7 @@ pub fn resource(name: &str) -> PathBuf {
     PathBuf::from(BASE_DIR).join("tests").join(name)
 }
 
-pub fn strpath<'a>(pb: &'a PathBuf) -> &'a str {
+pub fn strpath(pb: &Path) -> &str {
     pb.to_str().expect("Error creating path!")
 }
 

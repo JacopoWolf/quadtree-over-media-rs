@@ -1,6 +1,7 @@
 use log::{debug, info, trace};
 
 use crate::args::*;
+use crate::drawing::apply_background_color;
 
 use image::{codecs::*, *};
 use std::path::PathBuf;
@@ -16,6 +17,20 @@ pub(crate) fn load_image(source: &PathBuf) -> ImageResult<DynamicImage> {
         .decode();
     debug!("done loading '{strpath}'");
     imres
+}
+
+pub(crate) fn load_background(drawarg: &DrawingArgs) -> Option<DynamicImage> {
+    match drawarg.fill_with {
+        Some(ref path) => match load_image(path) {
+            Ok(img) => Some(if drawarg.background.is_some() {
+                apply_background_color(&img, drawarg.background.as_ref().unwrap())
+            } else {
+                img
+            }),
+            Err(error) => panic!("problem opening fill-with image: {error:?}"),
+        },
+        None => None,
+    }
 }
 
 pub(crate) fn save_image(

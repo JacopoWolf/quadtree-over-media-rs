@@ -28,7 +28,7 @@ const ARG_GRP_OUT: &str = "output_args";
 #[derive(Parser)]
 #[command(name = "Quadtree Over Media")]
 #[command(version, about, long_about = None)]
-pub(super) struct QomCli {
+pub(super) struct CliArgs {
     #[command(flatten)]
     pub io: IOArgs,
 
@@ -190,7 +190,7 @@ mod tests {
 
     #[test_case("10,20"     => Vec2{x:10,y:20}; "c")] // c => comma
     #[test_case("-10,20-"   => Vec2{x:10,y:20}; "c-noise")]
-    #[test_case("007=006"   => Vec2{x:07,y:06}; "equals")]
+    #[test_case("007=006"   => Vec2{x:7,y:6}; "equals")]
     #[test_case("(015,27)"  => Vec2{x:15,y:27}; "c-c")]
     #[test_case("[15,027]"  => Vec2{x:15,y:27}; "c-s")]
     #[test_case("{264,664}" => Vec2{x:264,y:664}; "c-g")]
