@@ -27,6 +27,7 @@ use image::{DynamicImage, ImageError};
 use log::{debug, error, info};
 use simplelog::*;
 use std::io::{Error, ErrorKind};
+use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // initialization
@@ -146,6 +147,7 @@ fn generate_quadtree_image(
     cache: &mut ImageCache,
 ) -> DynamicImage {
     info!("calculating quads");
+    let now = Instant::now();
 
     let structure = calc_quads(
         source,
@@ -156,15 +158,16 @@ fn generate_quadtree_image(
     );
 
     debug!(
-        "subdivided image into {} quads over {} recursions",
+        "subdivided image into {} quads over {} recursions in {:.3?}",
         structure.map.len(),
-        structure.sizes.len() - 1
+        structure.sizes.len() - 1,
+        now.elapsed()
     );
     // if a new image has to be generated, recoloring needs to be applied or
     // if the filler image is not None, use the full version of the
     // drawing fn, otherwise simplify
     info!("generating output image");
-    if draw.no_drawover || draw.fill || draw.fill_with.is_some() {
+    let img = if draw.no_drawover || draw.fill || draw.fill_with.is_some() {
         draw_quads(
             &structure,
             &draw.color,
@@ -175,5 +178,8 @@ fn generate_quadtree_image(
         )
     } else {
         draw_quads_squares(source, &structure, &draw.color)
-    }
+    };
+
+    debug!("image generated in {:.3?} total", now.elapsed());
+    img
 }
