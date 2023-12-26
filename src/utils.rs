@@ -25,14 +25,17 @@ pub struct Vec2 {
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub struct QuadInfo {
+pub struct Quad {
     pub depth: u8,
     pub color: Option<Rgba<u8>>,
 }
 
+pub struct VecQuad(pub Vec2, pub Quad);
+pub type QuadMap = HashMap<Vec2, Quad>;
+
 pub struct QuadStructure {
     /// position : quad info
-    pub map: HashMap<Vec2, QuadInfo>,
+    pub map: QuadMap,
     /// starts with the image size and then the halved sizes based on depth
     pub sizes: Vec<Vec2>,
 }
@@ -75,11 +78,21 @@ impl std::fmt::Display for Vec2 {
         write!(f, "({},{})", self.x, self.y)
     }
 }
-impl QuadInfo {
+
+impl Quad {
     pub fn new(d: u8) -> Self {
         Self {
             depth: d,
             color: None,
+        }
+    }
+}
+
+impl From<Rgba<u8>> for Quad {
+    fn from(color: Rgba<u8>) -> Self {
+        Self {
+            depth: 0,
+            color: Some(color),
         }
     }
 }

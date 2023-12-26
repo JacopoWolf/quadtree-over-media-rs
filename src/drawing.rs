@@ -18,9 +18,11 @@ use crate::quad::*;
 use crate::utils::*;
 use image::*;
 
+pub type ImageCache = HashMap<Vec2, DynamicImage>;
+
 //TODO unit test
 /// create a copy of the original and draw quads outlines on it
-pub fn draw_quads_simple(
+pub fn draw_quads_squares(
     original: &DynamicImage,
     quads: &QuadStructure,
     color: &Option<Rgba<u8>>,
@@ -47,7 +49,7 @@ pub fn draw_quads(
     background_color: &Option<Rgba<u8>>,
     multiply: bool,
     quad_img: &Option<DynamicImage>,
-    cache: &mut HashMap<Vec2, DynamicImage>,
+    cache: &mut ImageCache,
 ) -> DynamicImage {
     let img_size = structure.sizes[0];
 
@@ -126,7 +128,7 @@ fn draw_image(
     size: &Vec2,
     border_color: &Option<Rgba<u8>>,
     multiply_color: &Option<Rgba<u8>>,
-    cache: &mut HashMap<Vec2, DynamicImage>,
+    cache: &mut ImageCache,
 ) {
     let draw = match cache.get(size) {
         Some(di) => di,
@@ -191,12 +193,7 @@ fn multiply_pixels(a: &Rgba<u8>, b: &Rgba<u8>) -> [u8; 4] {
 /// Increase a quads' size by 1 if there's not a quad next to it;
 /// this check avoids empty line artifacts caused by the modulo
 /// while halfing odd numbers in the quad size
-fn adjust_quad_size(
-    pos: &Vec2,
-    size: &Vec2,
-    quadinf_map: &HashMap<Vec2, QuadInfo>,
-    bounds: &Vec2,
-) -> Vec2 {
+fn adjust_quad_size(pos: &Vec2, size: &Vec2, quadinf_map: &QuadMap, bounds: &Vec2) -> Vec2 {
     Vec2 {
         // find right
         x: if (pos.x + size.x) < bounds.x {
@@ -245,18 +242,18 @@ mod tests {
      *    |gh x\|
      *    |\\ \Z|
      */
-    static TEST_QUADTREE: Lazy<HashMap<Vec2, QuadInfo>> = Lazy::new(|| {
-        HashMap::from([
-            (Vec2 { x: 0, y: 0 }, QuadInfo::new(1)), //A
-            (Vec2 { x: 2, y: 0 }, QuadInfo::new(1)), //B
-            (Vec2 { x: 0, y: 2 }, QuadInfo::new(1)), //C
-            (Vec2 { x: 2, y: 2 }, QuadInfo::new(1)), //D
-            (Vec2 { x: 5, y: 0 }, QuadInfo::new(1)), //e
-            (Vec2 { x: 5, y: 2 }, QuadInfo::new(1)), //f
-            (Vec2 { x: 0, y: 5 }, QuadInfo::new(1)), //g
-            (Vec2 { x: 2, y: 5 }, QuadInfo::new(1)), //h
-            (Vec2 { x: 5, y: 5 }, QuadInfo::new(1)), //x
-            (Vec2 { x: 7, y: 7 }, QuadInfo::new(1)), //Z
+    static TEST_QUADTREE: Lazy<QuadMap> = Lazy::new(|| {
+        QuadMap::from([
+            (Vec2 { x: 0, y: 0 }, Quad::new(1)), //A
+            (Vec2 { x: 2, y: 0 }, Quad::new(1)), //B
+            (Vec2 { x: 0, y: 2 }, Quad::new(1)), //C
+            (Vec2 { x: 2, y: 2 }, Quad::new(1)), //D
+            (Vec2 { x: 5, y: 0 }, Quad::new(1)), //e
+            (Vec2 { x: 5, y: 2 }, Quad::new(1)), //f
+            (Vec2 { x: 0, y: 5 }, Quad::new(1)), //g
+            (Vec2 { x: 2, y: 5 }, Quad::new(1)), //h
+            (Vec2 { x: 5, y: 5 }, Quad::new(1)), //x
+            (Vec2 { x: 7, y: 7 }, Quad::new(1)), //Z
         ])
     });
     const TEST_QUAD_SIZE: Vec2 = Vec2 { x: 2, y: 2 };

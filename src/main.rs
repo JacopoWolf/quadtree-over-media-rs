@@ -18,23 +18,21 @@ mod io;
 mod quad;
 mod utils;
 
-use image::DynamicImage;
 use crate::args::*;
-use crate::drawing::{draw_quads, draw_quads_simple};
-use crate::io::{load_image, save_image};
+use crate::drawing::{draw_quads, draw_quads_squares, ImageCache};
+use crate::io::*;
 use crate::quad::*;
-use crate::utils::Vec2;
 use clap::Parser;
-use core::panic;
-use io::load_background;
-use log::{debug, info, trace};
+use image::{DynamicImage, ImageError};
+use log::{debug, error, info};
 use simplelog::*;
-use std::collections::HashMap;
+use std::io::{Error, ErrorKind};
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     // initialization
     let cli = CliArgs::parse();
 
+    // logging
     SimpleLogger::init(
         match cli.verbose {
             0 => LevelFilter::Error,
@@ -49,35 +47,47 @@ fn main() {
             .set_target_level(LevelFilter::Off)
             .set_location_level(LevelFilter::Off)
             .build(),
-    )
-    .unwrap();
+    )?;
 
-    // if input is a folder, check if output is also a folder
-    if cli.io.input.is_dir() {
-        if !cli.io.output.is_dir() {
-            panic!("input is a directory but output isn't!");
-        }
-
-        multiple_images(&cli);
+    if let 0 = check_rank(&cli.io)? {
+        single_image(&cli)?
     } else {
-        single_image(cli);
+        multiple_images(&cli)?
     }
 
-    info!("DONE \\[T]/")
+    info!("DONE \\[T]/");
+    Ok(())
 }
 
-fn multiple_images(cli: &CliArgs) {
-    let mut cache = HashMap::new();
+fn check_rank(io: &IOArgs) -> Result<u8, Error> {
+    if io.input.is_dir() {
+        // folder
+        if !io.output.is_dir() {
+            error!("input is a directory but output isn't!");
+            return Err(Error::from(ErrorKind::InvalidInput));
+        }
+        Ok(u8::MAX)
+    } else {
+        // file
+        if io.output.is_dir() {
+            error!("input is a file, but output is a directory!");
+            return Err(Error::from(ErrorKind::InvalidInput));
+        }
+        Ok(0)
+    }
+}
+
+fn multiple_images(cli: &CliArgs) -> Result<(), ImageError> {
+    let mut cache = ImageCache::new();
 
     // load additional image
-    let img_fill_with = load_background(&cli.image);
+    let img_fill_with = load_filler(&cli.image)?;
 
     // load all images into iterator
     let inputs = cli
         .io
         .input
-        .read_dir()
-        .expect("errors reading input directory")
+        .read_dir()?
         .filter(|dres| dres.as_ref().unwrap().path().is_file())
         .flatten();
 
@@ -89,7 +99,8 @@ fn multiple_images(cli: &CliArgs) {
         };
 
         // process
-        let img_out = calc_draw(&img_in, &img_fill_with, &cli.calc, &cli.image, &mut cache);
+        let img_out =
+            generate_quadtree_image(&img_in, &img_fill_with, &cli.calc, &cli.image, &mut cache);
 
         // save processed image
         match save_image(
@@ -101,41 +112,41 @@ fn multiple_images(cli: &CliArgs) {
             Err(error) => panic!("cannot save image: {error:?}"),
         }
     }
+
+    Ok(())
 }
 
-fn single_image(cli: CliArgs) {
+fn single_image(cli: &CliArgs) -> Result<(), ImageError> {
     // load source image to process
-    let img_in = match load_image(&cli.io.input) {
-        Ok(img) => img,
-        Err(error) => panic!("problem opening input image: {error:?}"),
-    };
+    let img_in = load_image(&cli.io.input)?;
+
     // load additional image
-    let img_fill_with = load_background(&cli.image);
+    let img_fill_with = load_filler(&cli.image)?;
 
     // process
-    let img_out = calc_draw(
+    let img_out = generate_quadtree_image(
         &img_in,
         &img_fill_with,
         &cli.calc,
         &cli.image,
-        &mut HashMap::new(),
+        &mut ImageCache::new(),
     );
 
     // save processed image
-    match save_image(&img_out, &cli.io.output, &cli.io.compression) {
-        Ok(_) => {}
-        Err(error) => panic!("cannot save image: {error:?}"),
-    }
+    save_image(&img_out, &cli.io.output, &cli.io.compression)?;
+
+    Ok(())
 }
 
-fn calc_draw(
+fn generate_quadtree_image(
     source: &DynamicImage,
     img_fill_with: &Option<DynamicImage>,
     calc: &QuadArgs,
     draw: &DrawingArgs,
-    cache: &mut HashMap<Vec2, DynamicImage>,
+    cache: &mut ImageCache,
 ) -> DynamicImage {
-    debug!("calculating...");
+    info!("calculating quads");
+
     let structure = calc_quads(
         source,
         &calc.min_quad_size,
@@ -143,8 +154,16 @@ fn calc_draw(
         &calc.threshold.unwrap_or(DEFAULT_TRESHOLD),
         draw.fill,
     );
-    trace!("subdivided image into {} quads", structure.map.len());
-    info!("generating output image...");
+
+    debug!(
+        "subdivided image into {} quads over {} recursions",
+        structure.map.len(),
+        structure.sizes.len() - 1
+    );
+    // if a new image has to be generated, recoloring needs to be applied or
+    // if the filler image is not None, use the full version of the
+    // drawing fn, otherwise simplify
+    info!("generating output image");
     if draw.no_drawover || draw.fill || draw.fill_with.is_some() {
         draw_quads(
             &structure,
@@ -155,6 +174,6 @@ fn calc_draw(
             cache,
         )
     } else {
-        draw_quads_simple(source, &structure, &draw.color)
+        draw_quads_squares(source, &structure, &draw.color)
     }
 }

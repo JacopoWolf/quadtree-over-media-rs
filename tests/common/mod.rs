@@ -1,7 +1,8 @@
 use std::{
     fs::File,
     io::Read,
-    process::{Command, Output}, path::{Path, PathBuf},
+    path::{Path, PathBuf},
+    process::{Command, Output},
 };
 
 // CONSTANTS
