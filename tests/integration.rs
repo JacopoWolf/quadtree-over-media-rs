@@ -1,5 +1,7 @@
 mod common;
 
+use std::path::PathBuf;
+
 use crate::common::*;
 
 #[test]
