@@ -261,8 +261,10 @@ mod tests {
         #[test_case(Vec2{x:32,y:32}, Vec2{x:32,y:32} => [127, 127, 127, 127]; "grey br")]
         #[test_case(Vec2{x:0,y:0}, Vec2{x:64,y:64} => [127, 127, 127, 127]; "gray whole")]
         #[test_case(Vec2::ZERO, Vec2::ZERO => panics "attempt to divide by zero"; "zero")]
-        #[test_case(Vec2::ZERO, Vec2{x:256,y:512} => panics "width as u64 <= self.width()"; "size too large")]
-        #[test_case(Vec2{x:500,y:500}, Vec2::ZERO => panics "width as u64 <= self.width()"; "out of bounds")]
+        #[test_case(Vec2::ZERO, Vec2{x:256,y:512} => panics "assertion failed: u64::from(x) + u64::from(width) <= u64::from(self.width())"; 
+            "size too large")]
+        #[test_case(Vec2{x:500,y:500}, Vec2::ZERO => panics "assertion failed: u64::from(x) + u64::from(width) <= u64::from(self.width())"; 
+            "out of bounds")]
         fn averages_colors(rectp: Vec2, rects: Vec2) -> [u8; 4] {
             average_colors(&TEST_IMAGE, &rectp, &rects)
         }
