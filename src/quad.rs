@@ -209,7 +209,7 @@ mod tests {
             assert!(subnodes
                 .iter()
                 .all(|vq| { vq.1.depth == depth && vq.1.color.is_none() }));
-            return subnodes.iter().map(|vq| vq.0).collect();
+            subnodes.iter().map(|vq| vq.0).collect()
         }
     }
 

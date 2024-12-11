@@ -145,9 +145,8 @@ fn draw_image(
         None => img.copy_from(draw, pos.x, pos.y),
     }
     .expect("Error while writing sub-image");
-    match border_color {
-        Some(c) => draw_square(img, pos, size, c, &None),
-        None => (),
+    if let Some(c) = border_color {
+        draw_square(img, pos, size, c, &None)
     }
 }
 

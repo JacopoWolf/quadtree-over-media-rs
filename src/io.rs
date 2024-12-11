@@ -7,7 +7,7 @@ use std::{fs::File, path::PathBuf};
 pub(crate) fn load_image(source: &PathBuf) -> ImageResult<DynamicImage> {
     let strpath = source.to_str().unwrap();
     info!("loading image '{strpath}'");
-    let imres = image::io::Reader::open(source)
+    let imres = image::ImageReader::open(source)
         .expect("error while opening image")
         .with_guessed_format()?
         .decode();
