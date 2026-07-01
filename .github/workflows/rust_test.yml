@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # SETUP
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: 🏭 Environment
         run: |
           echo "CARGO_HASH=${{hashFiles('**/Cargo.lock')}}" >> $GITHUB_ENV
